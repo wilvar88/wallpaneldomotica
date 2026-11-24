@@ -22,12 +22,12 @@ app.use(express.static('.'));
 
 const PORT = process.env.PORT || 3001;
 const VAULT_FILE = path.resolve('.secrets.vault.json');
-const DOCS_DIR = path.resolve('house_docs');
-const FACES_DIR = path.resolve('known_faces');
+const DOCS_DIR = fs.existsSync(path.resolve('house_docs')) ? path.resolve('house_docs') : path.join(os.tmpdir(), 'house_docs');
+const FACES_DIR = process.env.VERCEL ? path.join(os.tmpdir(), 'known_faces') : path.resolve('known_faces');
 const VAULT_SECRET = process.env.VAULT_SECRET || 'familia_varela_paez_master_key_2026';
 
-if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR, { recursive: true });
-if (!fs.existsSync(FACES_DIR)) fs.mkdirSync(FACES_DIR, { recursive: true });
+try { if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR, { recursive: true }); } catch (e) {}
+try { if (!fs.existsSync(FACES_DIR)) fs.mkdirSync(FACES_DIR, { recursive: true }); } catch (e) {}
 
 // =========================================================
 // 0. LAN IPv4 NETWORK DISCOVERY (FOR TABLET & MOBILE)
