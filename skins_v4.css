@@ -1311,7 +1311,7 @@ body[data-skin="neumorphism"] .bottom-pinned-dock {
 
 .lunar-top-bar {
   position: relative;
-  z-index: 4;
+  z-index: 5;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -1319,50 +1319,52 @@ body[data-skin="neumorphism"] .bottom-pinned-dock {
 }
 
 .lunar-phase-headline {
-  font-size: clamp(0.92rem, 6.2cqh, 1.32rem);
+  font-size: clamp(0.96rem, 6.6cqh, 1.42rem);
   font-weight: 900;
   color: #fef9c3;
   letter-spacing: -0.3px;
   line-height: 1.1;
-  text-shadow: 0 2px 12px rgba(253, 224, 71, 0.35);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.85), 0 0 12px rgba(253, 224, 71, 0.35);
 }
 
 .lunar-sub-illum {
-  font-size: clamp(0.62rem, 3.5cqh, 0.75rem);
+  font-size: clamp(0.64rem, 3.6cqh, 0.78rem);
   color: #93c5fd;
   font-weight: 700;
   margin-top: 2px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85);
 }
 
 .lunar-fraction-pill {
-  background: linear-gradient(135deg, rgba(253, 224, 71, 0.22), rgba(56, 189, 248, 0.24));
-  border: 1px solid rgba(253, 224, 71, 0.55);
+  background: linear-gradient(135deg, rgba(253, 224, 71, 0.24), rgba(56, 189, 248, 0.26));
+  border: 1px solid rgba(253, 224, 71, 0.6);
   color: #fef08a;
-  font-size: clamp(0.62rem, 3.4cqh, 0.74rem);
+  font-size: clamp(0.64rem, 3.5cqh, 0.78rem);
   font-weight: 800;
-  padding: 3px 9px;
+  padding: 4px 10px;
   border-radius: 999px;
   white-space: nowrap;
-  box-shadow: 0 0 12px rgba(253, 224, 71, 0.2);
+  box-shadow: 0 0 14px rgba(253, 224, 71, 0.25);
+  backdrop-filter: blur(6px);
 }
 
 .lunar-sky-theater {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 62px;
+  position: absolute;
+  inset: 2px 0 42px 0;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
+  pointer-events: none;
   overflow: visible;
 }
 
 .lunar-halo-ring {
   position: absolute;
-  width: clamp(82px, 48cqh, 175px);
-  height: clamp(82px, 48cqh, 175px);
+  width: clamp(165px, 94cqh, 410px);
+  height: clamp(165px, 94cqh, 410px);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(254, 240, 138, 0.22) 0%, rgba(56, 189, 248, 0.08) 55%, transparent 75%);
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.25) 0%, rgba(56, 189, 248, 0.09) 55%, transparent 74%);
   pointer-events: none;
   z-index: 1;
 }
@@ -1371,32 +1373,32 @@ body[data-skin="neumorphism"] .bottom-pinned-dock {
   position: absolute;
   pointer-events: none;
   user-select: none;
-  filter: brightness(0.92) contrast(1.04) drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+  filter: brightness(0.92) contrast(1.05) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55));
 }
 
 .lunar-cloud-back {
-  width: clamp(130px, 72cqw, 260px);
-  top: 12%;
-  left: 8%;
+  width: clamp(175px, 58cqw, 380px);
+  top: 18%;
+  left: 6%;
   z-index: 1;
-  opacity: 0.42;
+  opacity: 0.45;
   animation: lunarCloudDriftMid 29s ease-in-out infinite;
 }
 
 .lunar-moon-img {
   position: relative;
   z-index: 2;
-  width: clamp(68px, 44cqh, 152px);
-  height: clamp(68px, 44cqh, 152px);
+  width: clamp(134px, 80cqh, 330px);
+  height: clamp(134px, 80cqh, 330px);
   object-fit: contain;
   animation: lunarFloatGlow 6s ease-in-out infinite;
   user-select: none;
 }
 
 .lunar-cloud-front {
-  width: clamp(135px, 76cqw, 275px);
-  bottom: 2%;
-  right: 4%;
+  width: clamp(185px, 62cqw, 400px);
+  bottom: 4%;
+  right: 5%;
   z-index: 3;
   mix-blend-mode: screen;
   animation: lunarCloudDriftFront 22s ease-in-out infinite;
@@ -1404,15 +1406,16 @@ body[data-skin="neumorphism"] .bottom-pinned-dock {
 
 .lunar-bottom-panel {
   position: relative;
-  z-index: 4;
-  background: rgba(8, 15, 32, 0.76);
-  border: 1px solid rgba(148, 163, 184, 0.22);
+  z-index: 5;
+  margin-top: auto;
+  background: rgba(8, 15, 32, 0.80);
+  border: 1px solid rgba(148, 163, 184, 0.25);
   border-radius: 11px;
-  padding: 6px 9px;
+  padding: 6px 10px;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .lunar-trait-line {

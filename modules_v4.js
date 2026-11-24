@@ -1602,12 +1602,12 @@ window.LunarPhaseEngine = {
     `).join('');
 
     body.innerHTML = `
-      <div style="display:grid; grid-template-columns:minmax(220px, 290px) 1fr; gap:18px; align-items:center; background:rgba(4,9,24,0.75); border:1px solid rgba(186,230,253,0.22); border-radius:16px; padding:18px; position:relative; overflow:hidden;">
-        <div style="position:relative; height:220px; display:flex; align-items:center; justify-content:center;">
-          <div class="lunar-halo-ring" style="width:190px; height:190px;"></div>
-          <img src="public/assets/luna/clouds.png" class="lunar-cloud-layer lunar-cloud-back" style="width:240px;">
-          <img src="${shown.img}" class="lunar-moon-img" style="width:170px; height:170px;">
-          <img src="public/assets/luna/clouds.png" class="lunar-cloud-layer lunar-cloud-front" style="width:255px;">
+      <div style="display:grid; grid-template-columns:minmax(250px, 320px) 1fr; gap:18px; align-items:center; background:rgba(4,9,24,0.75); border:1px solid rgba(186,230,253,0.22); border-radius:16px; padding:18px; position:relative; overflow:hidden;">
+        <div style="position:relative; height:260px; display:flex; align-items:center; justify-content:center;">
+          <div class="lunar-halo-ring" style="width:280px; height:280px;"></div>
+          <img src="public/assets/luna/clouds.png" class="lunar-cloud-layer lunar-cloud-back" style="width:290px;">
+          <img src="${shown.img}" class="lunar-moon-img" style="width:245px; height:245px;">
+          <img src="public/assets/luna/clouds.png" class="lunar-cloud-layer lunar-cloud-front" style="width:310px;">
         </div>
         <div style="display:flex; flex-direction:column; gap:10px; z-index:4;">
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
