@@ -1,0 +1,57 @@
+# Instrucciones para Iconos Personalizados
+
+Esta carpeta contiene los iconos SVG para tus dispositivos.
+
+## Iconos incluidos:
+
+- `lightbulb.svg` - Luces/Bombillas
+- `switch.svg` - Interruptores
+- `outlet.svg` - Enchufes/Tomas
+- `fan.svg` - Ventiladores
+- `device.svg` - Dispositivo genérico (por defecto)
+
+## Cómo agregar iconos personalizados:
+
+1. **Crea o descarga un icono SVG**
+   - Formato: SVG (Scalable Vector Graphics)
+   - Tamaño recomendado: 64x64px viewBox
+   - Colores: Preferiblemente con gradientes o colores sólidos
+
+2. **Guarda el archivo aquí**
+   - Ejemplo: `mi-icono-personalizado.svg`
+
+3. **Actualiza el mapeo en script.js**
+   ```javascript
+   const ICON_MAPPING = {
+     'light': 'custom-icons/mi-icono-luz.svg',
+     'switch': 'custom-icons/mi-icono-switch.svg',
+     // Agrega más según necesites
+   };
+   ```
+
+## Categorías de Tuya disponibles:
+
+- `light` - Luces
+- `switch` - Interruptores
+- `outlet` - Enchufes
+- `fan` - Ventiladores
+- `curtain` - Cortinas
+- `sensor` - Sensores
+- `camera` - Cámaras
+- `lock` - Cerraduras
+- `thermostat` - Termostatos
+- `default` - Icono por defecto para dispositivos no reconocidos
+
+## Recursos para iconos SVG:
+
+- [Heroicons](https://heroicons.com/)
+- [Font Awesome](https://fontawesome.com/)
+- [Feather Icons](https://feathericons.com/)
+- [Material Icons](https://fonts.google.com/icons)
+
+## Consejos de diseño:
+
+- Usa colores que contrasten con el fondo glassmorphism
+- Mantén el diseño simple y reconocible
+- Agrega efectos de brillo o sombra para mejor visibilidad
+- Prueba diferentes tamaños para asegurar legibilidad

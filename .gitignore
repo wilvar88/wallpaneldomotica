@@ -1,0 +1,11 @@
+# Variables de entorno y bóveda de credenciales (NO SUBIR A GITHUB)
+.env
+.env.*
+!.env.example
+.secrets.vault.json
+known_faces/
+house_docs/*.private.*
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db

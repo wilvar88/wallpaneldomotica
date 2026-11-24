@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#091321">
+    <link rel="manifest" href="manifest.json">
+    <title>Mi Hogar · Wall Panel Familia Varela Páez V4.7</title>
+
+    <!-- Estilos CSS Base + Skins V4.7 -->
+    <link rel="stylesheet" href="style.css?v=47.0">
+    <link rel="stylesheet" href="skins_v4.css?v=47.0">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Crypto-JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+
+    <!-- HLS.js for Tuya Camera Live Stream -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <!-- MQTT.js for ESP32 Seismograph Cloud 24/7 -->
+    <script src="https://unpkg.com/mqtt@5.3.4/dist/mqtt.min.js"></script>
+</head>
+
+<body data-skin="glassmorphism">
+
+    <!-- Assistant Banner -->
+    <div id="assistant-banner" class="assistant-banner-hidden">
+        <div class="voice-line"></div>
+    </div>
+
+    <!-- Hidden Background Video for 24/7 Silent Facial Recognition Sentinel -->
+    <video id="bgSentinelVideo" autoplay playsinline muted crossorigin="anonymous" style="position:fixed; width:1px; height:1px; opacity:0; pointer-events:none; z-index:-99;"></video>
+
+    <!-- Background Layer -->
+    <div class="background-layer" id="backgroundLayer"></div>
+
+    <!-- "PANEL INTELIGENTE MI HOGAR" MASTER SHELL (HORIZONTAL FLEX ROW) -->
+    <div class="mihogar-shell app-container">
+
+        <!-- LEFT SIDEBAR ("Mi Hogar") -->
+        <aside class="mihogar-sidebar">
+            <div>
+                <div class="mihogar-brand">
+                    <div class="mihogar-brand-icon">
+                        <i class="fas fa-home"></i>
+                    </div>
+                    <div class="mihogar-brand-text">
+                        <h1 style="font-size:1.05rem; font-weight:800; margin:0; letter-spacing:-0.3px;">Mi Hogar</h1>
+                        <span id="activeSkinBadge" style="font-size:0.62rem; opacity:0.75; display:block; margin-top:1px;">Panel Domótico IoT</span>
+                    </div>
+                </div>
+
+                <nav class="mihogar-nav-list">
+                    <button class="mihogar-nav-btn active" onclick="goToPage(0)" id="navTab0">
+                        <i class="fas fa-home"></i>
+                        <span class="nav-label-text">Inicio</span>
+                    </button>
+                    <button class="mihogar-nav-btn" onclick="goToPage(1)" id="navTab1">
+                        <i class="fas fa-layer-group"></i>
+                        <span class="nav-label-text">Dispositivos & Salas</span>
+                    </button>
+                    <button class="mihogar-nav-btn" onclick="goToPage(2)" id="navTab2">
+                        <i class="fas fa-cube"></i>
+                        <span class="nav-label-text">Plano 3D</span>
+                    </button>
+                    <button class="mihogar-nav-btn" onclick="goToPage(3)" id="navTab3">
+                        <i class="fas fa-play-circle"></i>
+                        <span class="nav-label-text">Automatizaciones</span>
+                    </button>
+                    <button class="mihogar-nav-btn" onclick="goToPage(4)" id="navTab4">
+                        <i class="fas fa-brain"></i>
+                        <span class="nav-label-text">Cámara IA & Hubs</span>
+                    </button>
+                    <button class="mihogar-nav-btn" onclick="SecuritySystem.openPinOrConfigModal()" id="navTabSecurity">
+                        <i class="fas fa-shield-alt" id="sidebarSecIcon" style="color:#10b981;"></i>
+                        <span class="nav-label-text" id="sidebarSecText">Seguridad</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Bottom Hidden Configuration Trigger -->
+            <div style="border-top:1px solid rgba(148,163,184,0.18); padding-top:8px;">
+                <button class="mihogar-nav-btn" onclick="ConfigDrawer.toggle()">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-label-text">Configuración</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- RIGHT MAIN WORKSPACE (FILLS ALL CENTER & RIGHT SCREEN WITHOUT GAPS) -->
+        <div class="mihogar-main">
+
+            <!-- COMPACT TOP HEADER -->
+            <header class="mihogar-topbar">
+                <div class="topbar-clock-weather">
+                    <div class="hero-clock-wrap">
+                        <div class="hero-clock-big" id="clock">--:--</div>
+                        <div class="hero-date-sub" id="heroDateSub">Cargando fecha...</div>
+                    </div>
+
+                    <div class="topbar-divider"></div>
+
+                    <div class="hero-weather-wrap" id="weatherWidget" onclick="updateWeather()">
+                        <div class="hero-weather-svg" id="weatherIcon"></div>
+                        <div>
+                            <div class="hero-weather-temp" id="weatherTemp">--°C</div>
+                            <div class="hero-weather-loc" id="weatherLocation">Madrid, Cund.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Internal Air Quality + ESP32 Seismograph Compact Pills -->
+                <div class="internal-status-bar" id="internalMonitor">
+                    <div class="status-pill" id="pill-temp" data-label="Temp Int" onclick="openSensorAnalyticsModal()" style="cursor:pointer;">--°C</div>
+                    <div class="status-pill" id="pill-hum" data-label="Hum" onclick="openSensorAnalyticsModal()" style="cursor:pointer;">--%</div>
+                    <div class="status-pill" id="pill-co2" data-label="CO2" onclick="openSensorAnalyticsModal()" style="cursor:pointer;">--</div>
+                    <div class="status-pill" id="pill-co" data-label="CO" onclick="openSensorAnalyticsModal()" style="cursor:pointer;">--</div>
+                    <div class="status-pill safe-value" id="pill-sismo" data-label="Sismo ESP32" onclick="openSeismographVercelModal()" style="cursor:pointer;">0.000g</div>
+                </div>
+
+                <!-- Right Action Circles -->
+                <div class="topbar-actions">
+                    <button class="circle-action-btn" id="bgVisionIndicatorBtn" onclick="CameraVisionAI.toggleBackgroundSentinel()" title="IA Reconocimiento Facial en Segundo Plano (Saludo cada 3h)">
+                        <i class="fas fa-user-check"></i>
+                    </button>
+                    <button class="circle-action-btn" onclick="TuyaCameraLive.openLiveModal()" title="Abrir Cámara Tuya en Vivo">
+                        <i class="fas fa-video"></i>
+                    </button>
+                    <button class="circle-action-btn" id="topbarSecurityBtn" onclick="SecuritySystem.handleArmButtonClick()" title="Armar / Desarmar Seguridad">
+                        <i class="fas fa-shield-alt"></i>
+                    </button>
+                    <button class="circle-action-btn" onclick="goToPage(4); LocalAIAssistant.startVoiceInput();" title="Comando de Voz IA Local">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <button class="circle-action-btn" id="fullscreenToggleBtn" onclick="KioskManager.toggleFullscreen()" title="Pantalla Completa Tablet">
+                        <i class="fas fa-expand" id="fullscreenBtnIcon"></i>
+                    </button>
+                    <button class="circle-action-btn" onclick="ConfigDrawer.toggle()" title="Panel Oculto de Configuración, Skins y Grill">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- MAIN CAROUSEL VIEWPORT -->
+            <main class="main-content carousel-viewport">
+                <div class="view-carousel" id="viewCarousel">
+
+                    <!-- PAGE 0: INICIO (CENTRAL STAGE WITH INTERNAL CAROUSEL + FIXED BOTTOM DOCK) -->
+                    <div id="dashboard-view" class="carousel-page active">
+                        <!-- CENTRAL STAGE: Holds main cards in 1 single screen; if more cards exist, paginates horizontally with arrows -->
+                        <div class="central-stage-wrapper">
+                            <button class="central-carousel-nav-btn prev" id="centralPrevBtn" onclick="DashboardManager.changeInternalPage(-1)" title="Página anterior de tarjetas">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <div id="dashboardGrid" class="dashboard-grid" data-layout-preset="standard"></div>
+                            <button class="central-carousel-nav-btn next" id="centralNextBtn" onclick="DashboardManager.changeInternalPage(1)" title="Siguiente página de tarjetas">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+
+                        <!-- FIXED BOTTOM DOCK: Pinned Essential Cards (Iluminación, Clima Hogar, Armar Seguridad, Reglas, etc. - Customizable!) -->
+                        <div id="bottomPinnedDock" class="bottom-pinned-dock"></div>
+                    </div>
+
+                    <!-- PAGE 1: DISPOSITIVOS & AMBIENTES -->
+                    <div id="home-view" class="carousel-page">
+                        <div class="home-grid"></div>
+                    </div>
+
+                    <!-- PAGE 2: PLANO 3D INTERACTIVO -->
+                    <div id="floorplan-view" class="carousel-page">
+                        <div style="width:100%; height:100%; border-radius:18px; overflow:hidden; border:var(--card-border); box-shadow:var(--card-shadow); position:relative;">
+                            <iframe id="floorplan3dIframe" src="plano3d.html" style="width:100%; height:100%; border:none;" allow="fullscreen"></iframe>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 3: FLUJOGRAMA VISUAL DE ESCENAS & TARJETAS DE REGLA (ACTIVADOR <-> CONDICIÓN -> EJECUTAR) -->
+                    <div id="automations-view" class="carousel-page">
+                        <div class="automation-workspace" style="padding:2px; height:100%; gap:12px;">
+                            <div class="flow-sidebar" style="padding:12px; gap:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h3 style="margin:0; color:var(--primary-yellow); font-size:0.9rem;">
+                                        <i class="fas fa-project-diagram"></i> Crear Regla / Escena
+                                    </h3>
+                                    <button class="size-chip" onclick="SmartRuleCards.openRuleModal()" style="background:#10b981; color:#000;">+ Tarjeta Regla</button>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.66rem; color:var(--text-dim); font-weight:700;">ORDEN LÓGICO DE LA REGLA</label>
+                                    <select id="flowOrderMode" style="width:100%; padding:6px; border-radius:8px; background:rgba(0,0,0,0.4); color:#fbbf24; border:1px solid #fbbf24; font-size:0.75rem; font-weight:700; margin-top:2px;">
+                                        <option value="trigger_first">⚡ Activador ➔ Condición ➔ Ejecutar</option>
+                                        <option value="condition_first">🕒 Condición ➔ Activador ➔ Ejecutor</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.66rem; color:var(--text-dim); font-weight:700;">NOMBRE</label>
+                                    <input type="text" id="flowNameInput" placeholder="Ej: Puerta Abierta de Noche -> Alerta" style="width:100%; padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.35); color:#fff; font-size:0.76rem; margin-top:2px;">
+                                </div>
+                                <div>
+                                    <label style="font-size:0.66rem; color:#38bdf8; font-weight:700;">ACTIVADOR (SENSOR / EVENTO)</label>
+                                    <select id="flowTriggerType" style="width:100%; padding:6px; border-radius:8px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid #38bdf8; font-size:0.75rem; margin-top:2px;">
+                                        <option value="door_main_open">🚪 Puerta Principal: Abierta</option>
+                                        <option value="door_balcony_open">🚪 Puerta Balcón: Abierta</option>
+                                        <option value="vibration_detected">📳 Sensor Vibración: Activado</option>
+                                        <option value="smoke_detected">🔥 Detector de Humo: Alarma</option>
+                                        <option value="camera_known">👋 Cámara IA: Rostro Seguro Reconocido</option>
+                                        <option value="camera_unknown">🚨 Cámara IA: Desconocido / Saqueo</option>
+                                        <option value="seismic_alert">🌍 Sismo ESP32 >= 0.025g</option>
+                                        <option value="co2_high">💨 Sensor CO2 > 1000 ppm</option>
+                                        <option value="washer_done">🧺 Lavadora Samsung Terminó Ciclo</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.66rem; color:#f59e0b; font-weight:700;">CONDICIÓN (HORARIO + ESTADO EXTRA)</label>
+                                    <select id="flowConditionType" style="width:100%; padding:6px; border-radius:8px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid #f59e0b; font-size:0.75rem; margin-top:2px;">
+                                        <option value="always">✅ Siempre (24/7)</option>
+                                        <option value="night_only">🌙 Horario Nocturno (18:00 - 06:00)</option>
+                                        <option value="day_only">☀️ Horario Diurno (06:00 - 18:00)</option>
+                                        <option value="security_armed">🛡️ Solo si "Armar Seguridad" está Activo</option>
+                                        <option value="weekdays">📅 Solo Días Laborales (Lun - Vie)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.66rem; color:#10b981; font-weight:700;">EJECUTAR / EJECUTOR</label>
+                                    <select id="flowActionDevice" style="width:100%; padding:6px; border-radius:8px; background:rgba(0,0,0,0.4); color:#fff; border:1px solid #10b981; font-size:0.75rem; margin-top:2px;">
+                                        <option value="room_Salon_on">🛋️ Encender Luces Salón</option>
+                                        <option value="room_Oficina_on">💼 Encender Luz Oficina</option>
+                                        <option value="room_Cocina_on">🍳 Encender Luces Cocina</option>
+                                        <option value="room_Habitacion_on">🛏️ Encender Alcoba Principal</option>
+                                        <option value="all_lights_on">💡 Encender Todas las Luces</option>
+                                        <option value="all_lights_off">🌑 Apagar Todas las Luces</option>
+                                        <option value="none">🔇 Solo Anuncio de Voz Alexa</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style="font-size:0.66rem; color:#c084fc; font-weight:700;">MENSAJE EN ALEXA / CORREO</label>
+                                    <input type="text" id="flowAlexaText" placeholder="Mensaje que dirá Alexa..." style="width:100%; padding:6px 8px; border-radius:8px; border:1px solid #c084fc; background:rgba(0,0,0,0.35); color:#fff; font-size:0.76rem; margin-top:2px;">
+                                </div>
+                                <div style="display:flex; gap:6px;">
+                                    <button onclick="FlowAutomationEngine.addFlowFromUI(false)" style="flex:1; padding:8px; border-radius:10px; border:none; background:var(--primary-yellow); color:#091321; font-weight:800; font-size:0.75rem; cursor:pointer;">
+                                        Guardar Flujo
+                                    </button>
+                                    <button onclick="FlowAutomationEngine.addFlowFromUI(true)" style="flex:1; padding:8px; border-radius:10px; border:1px solid #10b981; background:rgba(16,185,129,0.2); color:#a7f3d0; font-weight:800; font-size:0.75rem; cursor:pointer;" title="Guardar y crear también una Tarjeta en el Tablero Inicio">
+                                        + Fijar en Tablero
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flow-canvas-panel" style="padding:14px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                                    <div>
+                                        <h3 style="margin:0; font-size:0.98rem;">Reglas y Automatizaciones Activas</h3>
+                                        <span style="font-size:0.72rem; color:var(--text-dim);">Haz clic en ⇄ en cualquier regla para alternar entre (Activador+Condición+Ejecutar) y (Condición+Activador+Ejecutor)</span>
+                                    </div>
+                                    <div style="display:flex; gap:6px;">
+                                        <input type="text" id="quickAlexaMsg" placeholder="Enviar audio a Alexa..." style="padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.4); color:#fff; font-size:0.75rem; width:190px;">
+                                        <button onclick="AlexaBridge.sendFromInput()" style="padding:6px 12px; border-radius:8px; border:none; background:#8b5cf6; color:#fff; font-weight:700; cursor:pointer; font-size:0.75rem;">
+                                            <i class="fas fa-bullhorn"></i> Alexa
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="flowchartsListContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAGE 4: CÁMARA TUYA EN VIVO, RECONOCIMIENTO FACIAL 24/7 (3H COOLDOWN), ASISTENTE RAG & HUBS -->
+                    <div id="ai-hub-view" class="carousel-page">
+                        <div class="ai-hub-grid" style="padding:2px; height:100%; gap:12px;">
+
+                            <!-- COLUMN 1: TUYA CAMERA LIVE + BACKGROUND 24/7 SENTINEL (3H COOLDOWN) -->
+                            <div class="ai-panel-card" style="padding:12px; gap:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h3 style="margin:0; color:#38bdf8; font-size:0.88rem;">
+                                        <i class="fas fa-video"></i> Cámara Tuya & Centinela Facial IA
+                                    </h3>
+                                    <span id="visionAiStatusBadge" class="seismo-badge online">Centinela 24/7 Activo</span>
+                                </div>
+
+                                <!-- Background Sentinel Control Bar -->
+                                <div style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); border-radius:10px; padding:7px 10px; display:flex; justify-content:space-between; align-items:center; font-size:0.72rem;">
+                                    <div>
+                                        <div style="font-weight:800; color:#34d399;">👁️ Vigilancia IA en 2° Plano (Sin mostrar video)</div>
+                                        <div style="color:var(--text-dim); font-size:0.66rem;" id="sentinelCooldownLabel">Saludo inteligente: Solo si no te ha visto en 3 horas</div>
+                                    </div>
+                                    <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-weight:800; color:#fff;">
+                                        <input type="checkbox" id="bgSentinelToggleChk" checked onchange="CameraVisionAI.setBackgroundSentinel(this.checked)">
+                                        Activo
+                                    </label>
+                                </div>
+
+                                <!-- Collapsible Live Video Preview (Hidden unless user enables it or clicks Ver Cámara) -->
+                                <div id="cameraPreviewContainer" style="position:relative; width:100%; height:175px; background:#000; border-radius:12px; overflow:hidden; border:1px solid rgba(56,189,248,0.4);">
+                                    <video id="aiVisionVideo" autoplay playsinline muted crossorigin="anonymous" style="width:100%; height:100%; object-fit:contain; display:block; background:#000;"></video>
+                                    <canvas id="aiVisionCanvas" style="position:absolute; inset:0; width:100%; height:100%; pointer-events:none;"></canvas>
+                                    <div id="aiVisionOverlayLabel" style="position:absolute; bottom:6px; left:6px; right:6px; background:rgba(0,0,0,0.82); padding:4px 8px; border-radius:6px; font-size:0.68rem; color:#34d399; font-family:'JetBrains Mono',monospace; display:flex; justify-content:space-between;">
+                                        <span id="aiVisionStatusText">Centinela IA activo en segundo plano</span>
+                                        <span id="aiVisionMatchScore" style="color:#38bdf8; font-weight:800;"></span>
+                                    </div>
+                                </div>
+
+                                <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                                    <button onclick="CameraVisionAI.startMonitoring('tuya')" style="flex:1; padding:7px; border-radius:8px; border:none; background:#38bdf8; color:#091321; font-weight:800; font-size:0.72rem; cursor:pointer;">
+                                        <i class="fas fa-eye"></i> Mostrar Cámara Tuya
+                                    </button>
+                                    <button onclick="CameraVisionAI.togglePreviewVisibility()" style="padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.06); color:#fff; font-weight:700; font-size:0.72rem; cursor:pointer;" title="Ocultar imagen dejando la IA activa en segundo plano">
+                                        <i class="fas fa-eye-slash"></i> Modo Oculto
+                                    </button>
+                                    <button onclick="TuyaCameraLive.openLiveModal()" style="padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.08); color:#fff; font-size:0.72rem; cursor:pointer;" title="Abrir Cámara en Modal Grande">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
+                                </div>
+
+                                <!-- Known Faces Folders -->
+                                <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:6px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                        <span style="font-size:0.72rem; font-weight:700;">👥 Rostros Seguros (<span id="knownFacesCount">0</span>)</span>
+                                        <div style="display:flex; gap:4px;">
+                                            <button onclick="CameraVisionAI.resetCooldownAndTest()" class="size-chip" style="background:#10b981; color:#000;" title="Probar saludo ignorando bloqueo de 3h">▶ Test Saludo</button>
+                                            <button onclick="CameraVisionAI.openAddFaceModal()" class="size-chip">+ Subir Fotos</button>
+                                        </div>
+                                    </div>
+                                    <div id="knownFacesList" style="display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; font-size:0.72rem;"></div>
+                                </div>
+                            </div>
+
+                            <!-- COLUMN 2: LOCAL AI RAG ASSISTANT & TIMERS -->
+                            <div class="ai-panel-card" style="padding:12px; gap:8px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <h3 style="margin:0; color:var(--primary-yellow); font-size:0.88rem;">
+                                        <i class="fas fa-robot"></i> Asistente IA Local & Documentos Casa
+                                    </h3>
+                                    <button onclick="LocalAIAssistant.openDocsManagerModal()" class="size-chip">
+                                        <i class="fas fa-file-alt"></i> Documentos
+                                    </button>
+                                </div>
+
+                                <div id="aiChatMessages" class="chat-messages-box" style="min-height:150px;">
+                                    <div class="chat-bubble ai" style="font-size:0.78rem;">
+                                        ¡Hola Familia Varela Páez! Pregúntame sobre los documentos de la casa (días de basura, fechas de pago, protocolo de sismo) o pídeme que encienda luces o cree un temporizador.
+                                    </div>
+                                </div>
+
+                                <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                                    <button class="size-chip" onclick="LocalAIAssistant.askPreset('¿Qué días se puede sacar la basura y el reciclaje?')">🗑️ Basura</button>
+                                    <button class="size-chip" onclick="LocalAIAssistant.askPreset('¿Cuáles son las fechas de pago de servicios y administración?')">📅 Pagos</button>
+                                    <button class="size-chip" onclick="LocalAIAssistant.askPreset('Pon un temporizador de 5 minutos')">⏱️ Timer 5m</button>
+                                    <button class="size-chip" onclick="LocalAIAssistant.askPreset('Enciende las luces del salón')">💡 Luces Salón</button>
+                                </div>
+
+                                <div style="display:flex; gap:6px;">
+                                    <input type="text" id="aiChatInput" placeholder="Pregúntame sobre la casa..." onkeydown="if(event.key==='Enter') LocalAIAssistant.sendUserMessage()" style="flex:1; padding:7px 10px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(0,0,0,0.4); color:#fff; font-size:0.78rem;">
+                                    <button onclick="LocalAIAssistant.startVoiceInput()" style="width:36px; border-radius:10px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.08); color:var(--primary-yellow); cursor:pointer;">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                    <button onclick="LocalAIAssistant.sendUserMessage()" style="padding:0 12px; border-radius:10px; border:none; background:var(--primary-yellow); color:#091321; font-weight:800; cursor:pointer;">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+
+                                <div id="aiTimersBox" style="background:rgba(0,0,0,0.25); border-radius:10px; padding:7px 10px; font-size:0.72rem; display:flex; flex-direction:column; gap:4px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                                        <span style="font-weight:700; color:var(--primary-yellow);"><i class="fas fa-stopwatch"></i> Temporizadores Activos</span>
+                                        <button onclick="LocalAIAssistant.promptNewTimer()" class="size-chip">+ Timer</button>
+                                    </div>
+                                    <div id="activeTimersList" style="color:var(--text-dim);">Sin temporizadores activos.</div>
+                                </div>
+                            </div>
+
+                            <!-- COLUMN 3: SMARTTHINGS EDGE / GROOVY INFO, ESP32, WASHER & TABLET LAN -->
+                            <div class="ai-panel-card" style="padding:12px; gap:8px;">
+                                <h3 style="margin:0; color:#34d399; font-size:0.88rem;">
+                                    <i class="fas fa-network-wired"></i> Tablet LAN, SmartThings, ESP32 & Teams
+                                </h3>
+
+                                <!-- Tablet Wi-Fi LAN Connection Info -->
+                                <div style="background:rgba(16,185,129,0.12); border-radius:10px; padding:8px; border:1px solid rgba(16,185,129,0.35);">
+                                    <div style="font-size:0.72rem; font-weight:800; color:#34d399; margin-bottom:2px;">
+                                        <i class="fas fa-tablet-alt"></i> URL para tu Tablet (Misma Red Wi-Fi)
+                                    </div>
+                                    <div id="lanAddressesBox" style="font-size:0.7rem; color:#e2e8f0; font-family:'JetBrains Mono',monospace;"></div>
+                                </div>
+
+                                <!-- ESP32 Registry -->
+                                <div style="background:rgba(0,0,0,0.28); border-radius:10px; padding:8px; border:1px solid rgba(52,211,153,0.25);">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span style="font-size:0.72rem; font-weight:800; color:#34d399;"><i class="fas fa-satellite-dish"></i> Dispositivos ESP32</span>
+                                        <button onclick="ESP32Manager.openAddESP32Modal()" class="size-chip">+ Vincular</button>
+                                    </div>
+                                    <div id="esp32NodesList" style="display:flex; flex-direction:column; gap:4px; font-size:0.7rem;"></div>
+                                </div>
+
+                                <!-- SmartThings Washer -->
+                                <div style="background:rgba(0,0,0,0.28); border-radius:10px; padding:8px; border:1px solid rgba(56,189,248,0.25);">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;">
+                                        <span style="font-size:0.72rem; font-weight:800; color:#38bdf8;"><i class="fas fa-soap"></i> Lavadora Samsung 24/7</span>
+                                        <button onclick="SmartThingsBridge.openConfigModal()" class="size-chip">Puente Tablet</button>
+                                    </div>
+                                    <div id="stWasherBridgeSummary" style="font-size:0.7rem; color:var(--text-dim);"></div>
+                                </div>
+
+                                <!-- Zapier / MS Teams -->
+                                <div style="background:rgba(0,0,0,0.28); border-radius:10px; padding:8px; border:1px solid rgba(168,85,247,0.25);">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                        <span style="font-size:0.72rem; font-weight:800; color:#c084fc;"><i class="fas fa-briefcase"></i> Reuniones Teams / Zapier</span>
+                                        <button onclick="ZapierTeamsHub.simulateMeetingWebhook()" class="size-chip">+ Test</button>
+                                    </div>
+                                    <div id="zapierNotificationsList" style="display:flex; flex-direction:column; gap:4px; font-size:0.7rem; max-height:70px; overflow-y:auto;"></div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div> <!-- End view-carousel -->
+
+                <!-- VIEW: ROOM DETAIL -->
+                <div id="room-view" class="view-section">
+                    <div class="room-header-bar">
+                        <h2 id="roomTitle" class="room-title">NOMBRE SALA</h2>
+                        <button class="back-btn" onclick="navigateToHome()">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                    <div class="room-content">
+                        <div id="roomDeviceGrid" class="device-grid-layout"></div>
+                    </div>
+                    <button class="floating-config-btn" onclick="openRoomConfig()">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                </div>
+
+                <!-- VIEW: MUSIC DETAIL -->
+                <div id="music-view" class="view-section">
+                    <div class="room-header-bar">
+                        <h2 class="room-title">SPOTIFY</h2>
+                        <button class="back-btn" onclick="navigateToHome()">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                    </div>
+                    <div class="room-content" style="height: calc(100% - 130px);">
+                        <iframe id="spotifyInfoIframe"
+                            src="https://open.spotify.com/embed/track/25O9W7R0M3bS9oFfEunf7T?utm_source=generator&theme=0"
+                            width="100%" height="100%" frameBorder="0" allowfullscreen=""
+                            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                            style="border-radius:12px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.4));"></iframe>
+                    </div>
+                </div>
+            </main>
+
+            <div class="page-indicators" style="display:none !important;">
+                <div class="dot active" onclick="goToPage(0)"></div>
+                <div class="dot" onclick="goToPage(1)"></div>
+                <div class="dot" onclick="goToPage(2)"></div>
+                <div class="dot" onclick="goToPage(3)"></div>
+                <div class="dot" onclick="goToPage(4)"></div>
+            </div>
+
+        </div> <!-- End mihogar-main -->
+    </div> <!-- End mihogar-shell -->
+
+    <!-- =================================================================
+         HIDDEN SLIDE-OUT CONFIGURATION DRAWER
+         ================================================================= -->
+    <div id="hiddenConfigBackdrop" class="hidden-config-backdrop" onclick="ConfigDrawer.close()"></div>
+    <aside id="hiddenConfigDrawer" class="hidden-config-drawer">
+        <div class="drawer-header">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <i class="fas fa-sliders-h" style="color:#38bdf8; font-size:1.1rem;"></i>
+                <h2 style="margin:0; font-size:1rem; font-weight:800;">Centro de Configuración Oculto</h2>
+            </div>
+            <button onclick="ConfigDrawer.close()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="drawer-body">
+            <!-- 1. Visual Skins Selector -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="fas fa-palette"></i> Estilo Visual (8 Skins Reales)</div>
+                <div class="skin-grid-selector">
+                    <button class="skin-pill-btn active" data-skin-btn="glassmorphism" onclick="SkinManager.setSkin('glassmorphism')">✨ Glassmorphism</button>
+                    <button class="skin-pill-btn" data-skin-btn="neumorphism" onclick="SkinManager.setSkin('neumorphism')">⚪ Neumorphism Soft</button>
+                    <button class="skin-pill-btn" data-skin-btn="liquid-glass" onclick="SkinManager.setSkin('liquid-glass')">💧 Liquid Glass</button>
+                    <button class="skin-pill-btn" data-skin-btn="dark-luxury" onclick="SkinManager.setSkin('dark-luxury')">👑 Dark Luxury Gold</button>
+                    <button class="skin-pill-btn" data-skin-btn="bento-grid" onclick="SkinManager.setSkin('bento-grid')">🍱 Bento Grid UI</button>
+                    <button class="skin-pill-btn" data-skin-btn="skeuomorphism" onclick="SkinManager.setSkin('skeuomorphism')">🎛️ Skeuomorphism</button>
+                    <button class="skin-pill-btn" data-skin-btn="aurora" onclick="SkinManager.setSkin('aurora')">🌌 Aurora Boreal</button>
+                    <button class="skin-pill-btn" data-skin-btn="futuristic-hud" onclick="SkinManager.setSkin('futuristic-hud')">🛸 Futuristic HUD</button>
+                </div>
+            </div>
+
+            <!-- 2. Central Container & Bottom Dock Cards -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="fas fa-th-large"></i> Tarjetas Centrales & Barra Fija Inferior</div>
+                <p style="font-size:0.72rem; color:#94a3b8; margin:0;">
+                    Agrega o quita tarjetas del recuadro central o de la barra fija inferior (Iluminación, Clima, Armar Seguridad, Reglas).
+                </p>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button onclick="DashboardManager.toggleEditMode(); ConfigDrawer.close();" style="flex:1; padding:8px; border-radius:8px; border:1px solid #38bdf8; background:rgba(56,189,248,0.18); color:#fff; font-weight:700; cursor:pointer; font-size:0.74rem;">
+                        <i class="fas fa-arrows-alt"></i> Editar Grill / Fijar Abajo
+                    </button>
+                    <button onclick="openWidgetSelector(); ConfigDrawer.close();" style="flex:1; padding:8px; border-radius:8px; border:none; background:#38bdf8; color:#091321; font-weight:800; cursor:pointer; font-size:0.74rem;">
+                        <i class="fas fa-plus"></i> Agregar Tarjeta
+                    </button>
+                </div>
+                <button onclick="SmartRuleCards.openRuleModal(); ConfigDrawer.close();" style="padding:8px; border-radius:8px; border:1px solid #10b981; background:rgba(16,185,129,0.18); color:#a7f3d0; font-weight:800; font-size:0.74rem; cursor:pointer;">
+                    <i class="fas fa-bolt"></i> + Crear Tarjeta de Regla (Activador ⇄ Condición ➔ Ejecutar)
+                </button>
+                <button onclick="DashboardManager.resetToMiHogarLayout(); ConfigDrawer.close();" style="padding:7px; border-radius:8px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#cbd5e1; font-size:0.72rem; cursor:pointer;">
+                    <i class="fas fa-magic"></i> Restaurar Diseño "Panel Inteligente Mi Hogar"
+                </button>
+            </div>
+
+            <!-- 3. Armed Security Configuration -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="fas fa-shield-alt"></i> Configurar "Armar Seguridad"</div>
+                <button onclick="SecuritySystem.openSecuritySettingsModal(); ConfigDrawer.close();" style="width:100%; padding:8px; border-radius:8px; border:1px solid #10b981; background:rgba(16,185,129,0.2); color:#a7f3d0; font-weight:800; cursor:pointer; font-size:0.76rem;">
+                    <i class="fas fa-user-lock"></i> Sensores, Correo, Acciones y Clave PIN
+                </button>
+            </div>
+
+            <!-- 4. Encrypted API Vault -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="fas fa-key"></i> Bóveda Cifrada API & Salas</div>
+                <button onclick="openGlobalSettings(); ConfigDrawer.close();" style="width:100%; padding:8px; border-radius:8px; border:1px solid #f59e0b; background:rgba(245,158,11,0.18); color:#fde68a; font-weight:800; cursor:pointer; font-size:0.76rem;">
+                    <i class="fas fa-lock"></i> Abrir Bóveda de Credenciales
+                </button>
+            </div>
+
+            <!-- 5. LAN IP for Tablet -->
+            <div class="drawer-section">
+                <div class="drawer-section-title"><i class="fas fa-wifi"></i> Dirección IP para Abrir en tu Tablet</div>
+                <div id="drawerLanAddresses" style="font-size:0.74rem; color:#34d399; font-family:'JetBrains Mono',monospace; line-height:1.5;"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- AIR QUALITY ALERT MODAL -->
+    <div class="air-alert-modal" id="airQualityAlert" style="display: none;">
+        <div class="air-alert-content">
+            <div class="air-alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <h2 class="air-alert-title">⚠️ Alerta de Calidad de Aire</h2>
+            <div class="air-alert-message" id="airAlertMessage"></div>
+            <div style="display:flex; gap:12px; justify-content:center;">
+                <button class="air-alert-btn" onclick="AlexaBridge.sendAlert('Alerta crítica de calidad de aire en el apartamento. Por favor ventilar inmediatamente.')">
+                    <i class="fas fa-bullhorn"></i> Anunciar en Alexa
+                </button>
+                <button class="air-alert-btn" onclick="closeAirQualityAlert()">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEISMIC EARTHQUAKE ALERT POPUP MODAL -->
+    <div class="air-alert-modal" id="seismicAlertModal" style="display: none;">
+        <div class="air-alert-content" style="border-color:#ff3b30; max-width:620px;">
+            <div class="air-alert-icon" style="color:#ff3b30;"><i class="fas fa-house-crack"></i></div>
+            <h2 class="air-alert-title">🚨 ¡ALERTA DE SISMO DETECTADO!</h2>
+            <div class="air-alert-message" id="seismicAlertDetails"></div>
+            <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                <button class="air-alert-btn" style="background:#7c3aed;" onclick="closeSeismicAlert(); openSeismographVercelModal();">
+                    <i class="fas fa-wave-square"></i> Abrir Monitor Sismógrafo
+                </button>
+                <button class="air-alert-btn" onclick="closeSeismicAlert()">Silenciar Alerta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECURITY PIN & 30s COUNTDOWN ENTRY MODAL -->
+    <div class="modal-overlay" id="securityPinModal">
+        <div class="modal-content config-modal" style="max-width: 400px; text-align:center; background:#0f172a; border:2px solid #38bdf8;">
+            <div class="modal-header" style="background:#1e293b; padding:14px 18px;">
+                <h2 id="secPinModalTitle" style="font-size:1rem; margin:0; display:flex; align-items:center; gap:8px;">
+                    <i class="fas fa-shield-alt" style="color:#38bdf8;"></i> Seguridad Mi Hogar
+                </h2>
+                <button class="close-btn" id="secPinCloseBtn" onclick="SecuritySystem.closePinModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding:16px;">
+                <div id="secPinCountdownBanner" style="display:none; background:rgba(239,68,68,0.22); border:1px solid #ef4444; color:#fca5a5; padding:8px; border-radius:10px; margin-bottom:10px; font-weight:800; font-size:0.82rem;">
+                    🚨 SENSOR ACTIVADO: Ingresa la clave en <span id="secEntryCountdownSec" style="font-size:1.2rem; color:#fff;">30</span>s
+                </div>
+                <p id="secPinSubtitle" style="font-size:0.78rem; color:#94a3b8; margin:0 0 10px 0;">
+                    Ingresa tu clave de seguridad (Por defecto: 123456)
+                </p>
+                <input type="password" id="secPinDisplay" readonly placeholder="••••••" style="width:100%; text-align:center; font-size:1.4rem; letter-spacing:8px; padding:8px; border-radius:10px; border:1px solid #334155; background:#090d16; color:#38bdf8; font-family:'JetBrains Mono',monospace;">
+                <div id="secPinErrorMsg" style="color:#ef4444; font-size:0.74rem; min-height:16px; margin-top:4px;"></div>
+
+                <div class="pin-keypad-grid">
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('1')">1</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('2')">2</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('3')">3</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('4')">4</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('5')">5</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('6')">6</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('7')">7</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('8')">8</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('9')">9</button>
+                    <button class="pin-key-btn" style="font-size:0.82rem; color:#f87171;" onclick="SecuritySystem.pressKey('CLR')">Borrar</button>
+                    <button class="pin-key-btn" onclick="SecuritySystem.pressKey('0')">0</button>
+                    <button class="pin-key-btn" style="background:#10b981; color:#000; font-size:0.9rem;" onclick="SecuritySystem.submitPin()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SEISMOGRAPH VERCEL FULL DASHBOARD -->
+    <div class="modal-overlay" id="seismographVercelModal">
+        <div class="modal-content" style="width:96vw; max-width:1400px; height:90vh; background:#0c0917; border:2px solid #bb86fc;">
+            <div class="modal-header" style="background:#160b29; padding:12px 20px;">
+                <h2 style="color:#fff; font-size:1.05rem; display:flex; align-items:center; gap:10px; margin:0;">
+                    <i class="fas fa-wave-square" style="color:#00e5ff;"></i>
+                    Sismógrafo ESP32 — Apartamento Natura Torre 7 Apto 902
+                    <span id="modalSeismoLiveReadout" class="seismo-badge online" style="margin-left:10px;">0.000g · Cloud MQTT Activo</span>
+                </h2>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <a href="https://sismografo-wilson-v-s-projects.vercel.app/" target="_blank" style="color:#bb86fc; font-size:0.78rem; text-decoration:none; border:1px solid #bb86fc; padding:4px 10px; border-radius:8px;">
+                        <i class="fas fa-external-link-alt"></i> Abrir en Pestaña
+                    </a>
+                    <button class="close-btn" onclick="closeSeismographVercelModal()"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="modal-body" style="padding:0; flex:1; overflow:hidden; position:relative;">
+                <iframe id="seismographVercelIframe" src="https://sismografo-wilson-v-s-projects.vercel.app/" style="width:100%; height:100%; border:none;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GLOBAL SETTINGS & ENCRYPTED API VAULT -->
+    <div class="modal-overlay" id="globalSettingsModal">
+        <div class="modal-content config-modal" style="max-width: 720px; max-height: 90vh;">
+            <div class="modal-header">
+                <h2><i class="fas fa-shield-alt" style="color:var(--primary-yellow);"></i> Configuración & Bóveda Cifrada API</h2>
+                <button class="close-btn" onclick="closeGlobalSettings()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body"></div>
+            <div class="modal-footer">
+                <button class="save-btn" onclick="saveGlobalSettings()">Guardar en Bóveda Segura</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ROOM CONFIGURATION -->
+    <div class="modal-overlay" id="roomConfigModal">
+        <div class="modal-content config-modal">
+            <div class="modal-header">
+                <h2>Configurar Sala</h2>
+                <button class="close-btn" onclick="closeRoomConfig()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="config-group">
+                    <h3>Fondo de Pantalla</h3>
+                    <input type="text" id="configBgInput" placeholder="Nombre archivo (ej: bg1.jpg)">
+                </div>
+                <div class="config-group">
+                    <h3>Vista</h3>
+                    <div class="switch-toggle-group">
+                        <button id="btn-grid" class="toggle-option active" onclick="setRoomLayout('grid')">Cuadrícula</button>
+                        <button id="btn-carousel" class="toggle-option" onclick="setRoomLayout('carousel')">Carrusel</button>
+                    </div>
+                </div>
+                <div class="config-group">
+                    <h3>Dispositivos Visibles</h3>
+                    <div id="deviceSelectList" class="device-select-list"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="save-btn" onclick="saveRoomConfig()">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CAMERA DEDICATED -->
+    <div class="modal-overlay" id="camModal">
+        <div class="modal-content modal-camera" id="camModalContent"></div>
+    </div>
+
+    <!-- MODAL: MULTI-SWITCH & GENERIC DETAILS -->
+    <div class="modal-overlay" id="deviceModal">
+        <div class="modal-content" id="modalContent"></div>
+    </div>
+
+    <!-- MODAL: WIDGET SELECTOR -->
+    <div class="modal-overlay" id="widgetSelectorModal">
+        <div class="modal-content config-modal" style="max-width:750px; max-height:88vh;">
+            <div class="modal-header">
+                <h2>Agregar Tarjeta al Recuadro Central o Barra Fija Inferior</h2>
+                <button class="close-btn" onclick="closeWidgetSelector()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="deviceWidgetList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js?v=47.0"></script>
+    <script src="modules_v4.js?v=47.0"></script>
+</body>
+
+</html>

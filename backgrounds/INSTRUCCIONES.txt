@@ -1,0 +1,32 @@
+# Instrucciones para Fondos Personalizados
+
+Esta carpeta es para tus imágenes de fondo personalizadas.
+
+## Cómo agregar un fondo:
+
+1. **Coloca tu imagen aquí**
+   - Formatos soportados: JPG, PNG, WEBP, GIF
+   - Resolución recomendada: 1920x1080 o superior
+   - Nombre sugerido: `fondo.jpg`, `background.png`, etc.
+
+2. **Configura el fondo en script.js**
+   ```javascript
+   BACKGROUND_IMAGE: 'backgrounds/tu-imagen.jpg'
+   ```
+
+3. **Recarga la página**
+   - El fondo se aplicará automáticamente
+
+## Consejos:
+
+- Usa imágenes con colores oscuros o medios para mejor contraste
+- Evita imágenes muy brillantes que dificulten la lectura
+- Puedes usar degradados o patrones sutiles
+- El tamaño del archivo afecta el tiempo de carga
+
+## Ejemplo de imágenes recomendadas:
+
+- Paisajes nocturnos
+- Degradados suaves
+- Texturas abstractas
+- Patrones geométricos oscuros

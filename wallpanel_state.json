@@ -1,0 +1,56 @@
+{
+  "skin": "glassmorphism",
+  "gridDensity": "standard",
+  "centralWidgets": [
+    { "id": "w-weather-hero", "type": "weather_hero", "w": 2, "h": 2 },
+    { "id": "w-lighting", "type": "mihogar_lighting", "w": 2, "h": 1 },
+    { "id": "w-climate", "type": "mihogar_climate", "w": 1, "h": 1 },
+    { "id": "w-security", "type": "mihogar_security", "w": 1, "h": 1 },
+    { "id": "w-room-sala", "type": "mihogar_room_photo", "room": "Salon", "title": "Sala", "bg": "backgrounds/Sala Comedor.png", "icon": "fa-couch", "w": 1, "h": 1 },
+    { "id": "w-room-hab", "type": "mihogar_room_photo", "room": "Habitación", "title": "Habitación", "bg": "backgrounds/Habitación.png", "icon": "fa-bed", "w": 1, "h": 1 },
+    { "id": "w-room-cocina", "type": "mihogar_room_photo", "room": "Cocina", "title": "Cocina", "bg": "backgrounds/Cocina.png", "icon": "fa-utensils", "w": 1, "h": 1 },
+    { "id": "w-room-oficina", "type": "mihogar_room_photo", "room": "Oficina", "title": "Estudio", "bg": "backgrounds/Oficina.png", "icon": "fa-laptop", "w": 1, "h": 1 },
+    { "id": "w-seismo", "type": "seismograph", "deviceId": "esp32-sismografo-principal", "w": 2, "h": 1 },
+    { "id": "w-camera-live", "type": "tuya_camera_card", "w": 1, "h": 1 },
+    { "id": "w-rule-1", "type": "smart_rule_card", "ruleId": "rule-card-1", "w": 1, "h": 1 }
+  ],
+  "dockWidgets": [
+    { "id": "dock-lighting", "type": "mihogar_lighting", "w": 1, "h": 1 },
+    { "id": "dock-climate", "type": "mihogar_climate", "w": 1, "h": 1 },
+    { "id": "dock-security", "type": "mihogar_security", "w": 1, "h": 1 },
+    { "id": "dock-washer", "type": "washer_bridge", "w": 1, "h": 1 }
+  ],
+  "smartRules": [
+    {
+      "id": "rule-card-1",
+      "name": "Vigilar Puerta de Noche",
+      "orderMode": "trigger_first",
+      "triggerType": "door_main_open",
+      "triggerLabel": "🚪 Puerta Principal Abierta",
+      "conditionType": "night_only",
+      "conditionLabel": "🌙 Horario 18:00-06:00",
+      "actionType": "room_Salon_on",
+      "actionLabel": "💡 Encender Salón + Alexa",
+      "alexaMsg": "Alerta: Se abrió la puerta principal en horario nocturno.",
+      "enabled": true,
+      "pinnedToDock": false
+    }
+  ],
+  "flows": [
+    {
+      "id": "flow-face-welcome",
+      "name": "Reconocimiento Facial (Cada 3h) -> Encender Salón + Saludo",
+      "orderMode": "trigger_first",
+      "trigger": "camera_known",
+      "triggerLabel": "👋 Cámara IA: Rostro Seguro",
+      "condition": "always",
+      "conditionLabel": "✅ Siempre (Cooldown 3h)",
+      "actionDevice": "room_Salon_on",
+      "actionLabel": "🛋️ Encender Luces Salón",
+      "alexaText": "Bienvenido a casa Wilson. He encendido las luces del salón.",
+      "enabled": true,
+      "lastTriggered": "Listo"
+    }
+  ],
+  "updatedAt": "2026-11-23T22:52:00.000Z"
+}

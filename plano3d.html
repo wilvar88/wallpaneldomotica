@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mi Apartamento | Plano 3D Interactivo IoT & NeonPlan</title>
+<style>
+  :root{color-scheme:dark;--bg:#091321;--panel:#101e31;--muted:#99afc5;--text:#f3f7ff;--accent:#55dbdf;--line:rgba(171,210,232,.13);--card:#14253b}
+  *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+  body{display:flex}button{font:inherit;cursor:pointer}button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  aside{z-index:10;width:305px;flex-shrink:0;background:linear-gradient(170deg,#0e1d30 0%,#091421 100%);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 16px 14px;box-shadow:10px 0 30px #040d1c30;overflow-y:auto}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}.logo{width:44px;height:44px;display:grid;place-items:center;background:linear-gradient(140deg,#26c5de35,#5683ff30);border:1px solid #73e4ef57;border-radius:14px;box-shadow:inset 0 0 22px #2fddeb20}
+  .logo svg{width:24px;height:24px;color:#68e5ed}.brand small{display:block;color:#7893ad;font-size:10px;letter-spacing:2px;font-weight:800;margin-bottom:3px}.brand strong{font-size:18px;font-weight:730;letter-spacing:-.4px}
+  .section-title{font-size:10px;letter-spacing:1.8px;font-weight:800;color:#7897b6;margin:10px 6px 8px}.rooms{display:flex;flex-direction:column;gap:4px}
+  .room-row{display:flex;align-items:center;gap:6px}
+  .room-btn{display:flex;align-items:center;gap:10px;flex:1;padding:10px 10px;background:transparent;border:1px solid transparent;border-radius:11px;color:#b6c6d8;text-align:left;font-size:12.5px;transition:.15s}
+  .room-btn:hover{background:#20344b;color:#fff}.room-btn.active{background:linear-gradient(110deg,#214d5e9e,#18354a);border-color:#56dcd455;color:#f8ffff;font-weight:700}
+  .light-toggle-btn{width:36px;height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.05);color:#8fa6bc;display:grid;place-items:center;font-size:14px;transition:.2s}
+  .light-toggle-btn.lit{background:rgba(255,215,0,.22);border-color:#ffd700;color:#ffd700;box-shadow:0 0 12px rgba(255,215,0,.45)}
+  .dot{height:9px;width:9px;border-radius:3px;flex-shrink:0;background:var(--dot);box-shadow:0 0 12px color-mix(in srgb,var(--dot),transparent 60%)}
+  .sidebar-spacer{flex:1;min-height:10px}.notice{margin:10px 0 4px;border:1px solid #79bccf33;padding:11px 11px;border-radius:12px;background:#20354753;color:#a9bdcb;font-size:11px;line-height:1.5}.notice b{color:#d3e7ef}
+  main{position:relative;flex:1;min-width:0;min-height:100%;overflow:hidden;background:radial-gradient(ellipse at 55% 53%,#243c4d 0%,#142638 46%,#0a1726 94%)}
+  main.style-neon{background:radial-gradient(ellipse at 55% 53%,#0d1b35 0%,#060d1c 55%,#02050b 98%)}
+  main.style-synthwave{background:radial-gradient(ellipse at 55% 45%,#36124d 0%,#1a0930 55%,#090314 98%)}
+  main.style-architect{background:radial-gradient(ellipse at 55% 53%,#3a4856 0%,#26323f 55%,#182029 98%)}
+  #view{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}#view.dragging{cursor:grabbing}
+  .topbar{position:absolute;z-index:4;top:0;left:0;right:0;padding:18px 24px;pointer-events:none;display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+  .topbar h1{font-size:21px;font-weight:720;letter-spacing:-.6px;margin:0 0 5px}.topbar p{font-size:12px;margin:0;color:#9eafc2}
+  .tag{font-size:9.5px;padding:5px 10px;border-radius:50px;border:1px solid #62dfd857;background:#183c4580;color:#9cf4e9;font-weight:800;letter-spacing:1.1px;display:inline-block;margin-bottom:6px}
+  .topright{pointer-events:auto;display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+  .chip{padding:8px 11px;border-radius:10px;border:1px solid #a0c6e62c;background:#132637cc;backdrop-filter:blur(10px);color:#d6e7f6;font-size:11.5px;display:flex;align-items:center;gap:6px}.chip:hover,.chip.active{background:#238b9d;color:#fff;border-color:#55dbdf}
+  #labels{position:absolute;z-index:3;inset:0;pointer-events:none;overflow:hidden}
+  .room-label{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:auto;cursor:pointer;user-select:none;border-radius:8px;padding:5px 9px;background:#071c27cc;border:1px solid #bef0f052;color:#efffff;font-size:10px;font-weight:800;letter-spacing:.3px;box-shadow:0 3px 9px #08111b5e;display:flex;align-items:center;gap:5px;transition:.2s}
+  .room-label:hover,.room-label.selected{background:#238b9d;color:#fff}
+  .room-label.lit{border-color:#ffd700;box-shadow:0 0 16px rgba(255,215,0,.6);background:rgba(40,34,10,.88);color:#ffe875}
+  .toolbar{z-index:5;position:absolute;top:110px;right:20px;display:flex;flex-direction:column;gap:7px;background:#0c1b2bdc;padding:8px;border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 25px #07101b66;backdrop-filter:blur(16px)}
+  .toolbtn{background:transparent;border:1px solid transparent;color:#b4c8d9;padding:9px 11px;border-radius:9px;min-width:98px;text-align:center;font-size:11.5px}.toolbtn:hover{background:#213f52;color:#fff}.toolbtn.active{background:#1864769e;color:#affff5;border-color:#4adecf60;font-weight:750}
+  .foot-controls{z-index:5;position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;border:1px solid #7fa5b72b;background:#0c1d2ce8;box-shadow:0 14px 36px #0005;backdrop-filter:blur(20px);border-radius:16px;padding:7px;max-width:calc(100% - 30px);white-space:nowrap}
+  .foot-controls button{background:transparent;border:1px solid transparent;padding:9px 12px;border-radius:10px;color:#b6cbdc;font-size:11.5px;font-weight:650}.foot-controls button:hover{color:#fff;background:#1d394d}.foot-controls button.active{background:#204f5e;color:#9ef4eb;border-color:#69d6da4d}.separator{height:22px;width:1px;background:#9eb6cb30}
+  .zoom{position:absolute;z-index:5;right:22px;bottom:90px;display:flex;flex-direction:column;gap:6px}.zoom button{height:36px;width:36px;color:#e3efff;background:#0e263bd9;border:1px solid #adc7dd30;border-radius:10px;font-size:18px}
+</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div class="brand">
+    <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-6h6v6"/></svg></div>
+    <div><small>NEONPLAN 3D · DOMÓTICA</small><strong>Apto 902 · Varela Páez</strong></div>
+  </div>
+  <div class="section-title">AMBIENTES Y LUCES EN VIVO</div>
+  <div id="rooms" class="rooms"></div>
+
+  <div class="section-title" style="margin-top:14px;">ESTILO VISUAL 3D (NEONPLAN)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+    <button class="chip active" data-style3d="homely" onclick="set3DStyle('homely',this)">🏠 Realista</button>
+    <button class="chip" data-style3d="neon" onclick="set3DStyle('neon',this)">⚡ Neon 3D</button>
+    <button class="chip" data-style3d="synthwave" onclick="set3DStyle('synthwave',this)">🌆 Synthwave</button>
+    <button class="chip" data-style3d="architect" onclick="set3DStyle('architect',this)">📐 Arquitecto</button>
+  </div>
+
+  <div class="sidebar-spacer"></div>
+  <div class="notice">
+    <b>Sincronizado con Tuya & SmartThings:</b> Haz clic en el botón 💡 de cualquier alcoba o sala para encender/apagar la luz real y ver cómo se ilumina la habitación en 3D.
+  </div>
+</aside>
+<main id="main">
+  <canvas id="view"></canvas>
+  <div id="labels"></div>
+  <div class="topbar">
+    <div>
+      <span class="tag" id="liveBadge3D">SINCRONIZACIÓN DOMÓTICA 3D ACTIVA</span>
+      <h1>Plano 3D Interactivo · Alcoba Principal Realista</h1>
+      <p>Toca una etiqueta o el botón 💡 para iluminar la habitación y accionar los interruptores reales.</p>
+    </div>
+    <div class="topright">
+      <button id="btnAllLightsOn" class="chip" onclick="toggleAll3DLights(true)">💡 Encender Todo</button>
+      <button id="btnAllLightsOff" class="chip" onclick="toggleAll3DLights(false)">🌑 Apagar Todo</button>
+      <button id="btnShot" class="chip">◫ Captura 3D</button>
+    </div>
+  </div>
+  <div id="toolbar" class="toolbar">
+    <button data-view="iso" class="toolbtn active">◈ Perspectiva</button>
+    <button data-view="top" class="toolbtn">▦ Superior</button>
+    <button data-view="front" class="toolbtn">▤ Frontal</button>
+    <button data-view="side" class="toolbtn">▥ Lateral</button>
+  </div>
+  <div class="zoom"><button id="zoomIn">+</button><button id="zoomOut">−</button></div>
+  <div class="foot-controls">
+    <button data-wall="cut" class="active">◫ Muros bajos</button>
+    <button data-wall="high">▣ Muros altos</button>
+    <button data-wall="none">▦ Sin muros</button>
+    <div class="separator"></div>
+    <button id="toggleFurn" class="active">▱ Muebles</button>
+    <button id="toggleLabels" class="active">⌖ Etiquetas</button>
+    <div class="separator"></div>
+    <button id="reset">↺ Reiniciar</button>
+  </div>
+</main>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('view'),ctx=canvas.getContext('2d',{alpha:true});
+const labelsEl=document.getElementById('labels');
+const S={yaw:-.48,elev:.94,dist:17.8,tx:0,ty:0,tz:0,mode:'persp',walls:'cut',furn:true,labels:true,selected:'all',style3d:'homely',anim:null,dpr:1,w:1,h:1};
+
+// Room definitions with live lighting state and Tuya/WallPanel room mapping
+const rooms=[
+  {id:'all',name:'Vista completa',px:595,pz:347,color:'#65dbe1',zoom:17.8,lit:false,wpRoom:'Todos',bounds:null},
+  {id:'master',name:'Alcoba principal',px:287,pz:263,color:'#dfbd8e',zoom:7.6,lit:true,wpRoom:'Habitación',bounds:[182,151,401,386]},
+  {id:'bed1',name:'Alcoba 1',px:375,pz:499,color:'#ec93b3',zoom:8.8,lit:false,wpRoom:'Habitación 2',bounds:[280,388,471,613]},
+  {id:'bed2',name:'Alcoba 2 / Oficina',px:566,pz:500,color:'#72bcdc',zoom:8.8,lit:false,wpRoom:'Oficina',bounds:[472,388,660,613]},
+  {id:'living',name:'Sala y comedor',px:828,pz:453,color:'#e2c4a1',zoom:10.5,lit:true,wpRoom:'Salon',bounds:[627,340,1004,582]},
+  {id:'kitchen',name:'Cocina y ropas',px:800,pz:247,color:'#c2d7d9',zoom:10.5,lit:false,wpRoom:'Cocina',bounds:[627,161,1004,340]},
+  {id:'study',name:'Estudio / Pasillo',px:546,pz:288,color:'#98c4cc',zoom:8.5,lit:false,wpRoom:'Pasillo Estudio',bounds:[402,242,626,388]},
+  {id:'baths',name:'Baños',px:401,pz:118,color:'#aabfcd',zoom:9.2,lit:false,wpRoom:'Baño',bounds:[312,58,494,323]},
+  {id:'balcony',name:'Balcón',px:747,pz:606,color:'#ad8a6c',zoom:8.8,lit:false,wpRoom:'Balcón',bounds:[664,581,829,623]}
+];
+
+const P=(p,z,y=0)=>[-(p-590)/76,y,(z-340)/76];
+const V=(a,b,t=0)=>P(a,b,t);
+const colors={wood:'#b67e53',woodMaster:'#8f6e52',wood2:'#ad7752',tile:'#e3ded0',tile2:'#efe7d9',bath:'#b8ced5',marble:'#f2f3f0',walls:'#edf1ec',wallsMaster:'#d5d9de',study:'#e2dad0',rug:'#b6a69d'};
+let geometry=[];
+
+function rgb(hex){hex=hex.replace('#','');if(hex.length===3)hex=[...hex].map(v=>v+v).join('');return [parseInt(hex.slice(0,2),16),parseInt(hex.slice(2,4),16),parseInt(hex.slice(4,6),16)];}
+function shade(hex,f,a=1){let v=rgb(hex).map(n=>Math.max(0,Math.min(255,Math.round(n*f))));return `rgba(${v[0]},${v[1]},${v[2]},${a})`;}
+function face(pts,color,edge=false,kind='',area=null,alpha=1){geometry.push({pts,color,edge,kind,area,alpha});}
+function topRect(x1,z1,x2,z2,y,color,area,edge=true,alpha=1){let a=V(x1,z1,y),b=V(x2,z1,y),c=V(x2,z2,y),d=V(x1,z2,y);face([a,b,c,d],color,edge,'top',area,alpha);}
+function polyTop(points,y,color,area,edge=true){face(points.map(p=>V(p[0],p[1],y)),color,edge,'top',area);}
+function cube(x1,z1,x2,z2,h,color,base=0,kind='furn',area=null,alpha=1){
+  const A=V(x1,z1,base),B=V(x2,z1,base),C=V(x2,z2,base),D=V(x1,z2,base),E=V(x1,z1,base+h),F=V(x2,z1,base+h),G=V(x2,z2,base+h),H=V(x1,z2,base+h);
+  face([A,B,F,E],color,false,kind,area,alpha);face([B,C,G,F],color,false,kind,area,alpha);face([C,D,H,G],color,false,kind,area,alpha);face([D,A,E,H],color,false,kind,area,alpha);face([E,F,G,H],color,true,kind,area,alpha);
+}
+function circle(px,pz,r,h,color,base=.05,kind='furn',area=null,alpha=1){const n=14,bot=[],top=[];for(let i=0;i<n;i++){let a=i*Math.PI*2/n;bot.push(V(px+Math.cos(a)*r,pz+Math.sin(a)*r,base));top.push(V(px+Math.cos(a)*r,pz+Math.sin(a)*r,base+h));}for(let i=0;i<n;i++)face([bot[i],bot[(i+1)%n],top[(i+1)%n],top[i]],color,false,kind,area,alpha);face(top,color,true,kind,area,alpha);}
+function sphere(px,pz,r,color,base,kind='furn',area=null){
+  const seg=8,rings=5;
+  for(let j=0;j<rings;j++){
+    let a1=-Math.PI/2+j*Math.PI/rings, a2=-Math.PI/2+(j+1)*Math.PI/rings;
+    let y1=base+r+Math.sin(a1)*r, y2=base+r+Math.sin(a2)*r;
+    let r1=Math.cos(a1)*r, r2=Math.cos(a2)*r;
+    for(let i=0;i<seg;i++){
+      let t1=i*Math.PI*2/seg, t2=(i+1)*Math.PI*2/seg;
+      let p1=V(px+Math.cos(t1)*r1,pz+Math.sin(t1)*r1,y1);
+      let p2=V(px+Math.cos(t2)*r1,pz+Math.sin(t2)*r1,y1);
+      let p3=V(px+Math.cos(t2)*r2,pz+Math.sin(t2)*r2,y2);
+      let p4=V(px+Math.cos(t1)*r2,pz+Math.sin(t1)*r2,y2);
+      face([p1,p2,p3,p4],color,false,kind,area);
+    }
+  }
+}
+
+function getStyleWallColor(area){
+  if(S.style3d==='neon') return '#0e243d';
+  if(S.style3d==='synthwave') return '#2b1342';
+  if(S.style3d==='architect') return '#f5f7f9';
+  return area==='master'?colors.wallsMaster:colors.walls;
+}
+
+function wall(x1,z1,x2,z2,area=null,gaps=[]){
+  const h=S.walls==='high'?2.45:.79,t=.085*76;
+  if(S.walls==='none')return;
+  const len=Math.hypot(x2-x1,z2-z1);if(len<1)return;
+  const col=getStyleWallColor(area);
+  const intervals=[];let pos=0;gaps.slice().sort((a,b)=>a[0]-b[0]).forEach(([s,e])=>{if(s>pos)intervals.push([pos,s]);pos=Math.max(pos,e);});if(pos<1)intervals.push([pos,1]);
+  intervals.forEach(([u,v])=>{if(v-u<.01)return;let sx=x1+(x2-x1)*u,sz=z1+(z2-z1)*u,ex=x1+(x2-x1)*v,ez=z1+(z2-z1)*v;
+  if(Math.abs(sx-ex)>Math.abs(sz-ez)){
+    let a=Math.min(sx,ex),b=Math.max(sx,ex);
+    cube(a,sz-t/2,b,sz+t/2,h,col,.05,'wall',area,.99);
+    if(area==='master' && S.style3d==='homely'){cube(a,sz-t/2-.6,b,sz+t/2+.6,.09,'#6b4428',.05,'wall',area,.99);}
+  }else{
+    let a=Math.min(sz,ez),b=Math.max(sz,ez);
+    cube(sx-t/2,a,sx+t/2,b,h,col,.05,'wall',area,.99);
+    if(area==='master' && S.style3d==='homely'){cube(sx-t/2-.6,a,sx+t/2+.6,b,.09,'#6b4428',.05,'wall',area,.99);}
+  }
+  });
+}
+
+function floorGrout(x1,z1,x2,z2,grid=52,area=null,lineCol='#aab4b0'){
+  if(S.style3d==='neon') lineCol='#00e5ff';
+  if(S.style3d==='synthwave') lineCol='#ff2c7d';
+  for(let x=x1+grid;x<x2;x+=grid){topRect(x-.55,z1,x+.55,z2,.047,lineCol,area,false)}
+  for(let z=z1+grid;z<z2;z+=grid){topRect(x1,z-.55,x2,z+.55,.047,lineCol,area,false)}
+}
+
+function floorWood(x1,z1,x2,z2,area,seed=0,baseCol=colors.wood,line1='#956448',line2='#bd8c64'){
+  if(S.style3d==='neon'){baseCol='#0a192f';line1='#00e5ff';line2='#0088aa';}
+  else if(S.style3d==='synthwave'){baseCol='#1c0b2b';line1='#c084fc';line2='#ff2c7d';}
+  else if(S.style3d==='architect'){baseCol='#e8ecef';line1='#cfd8dc';line2='#dfe5e8';}
+  topRect(x1,z1,x2,z2,.045,baseCol,area);
+  for(let z=z1+17;z<z2;z+=19){
+    topRect(x1,z-.5,x2,z+.5,.05,line1,area,false);
+    for(let x=x1+(seed*31+Math.floor(z)*13)%74;x<x2;x+=74){topRect(x-.5,z-16,x+.5,z,.052,line2,area,false)}
+  }
+}
+
+function fillFoundation(){
+  const outline=[[181,56],[484,56],[484,149],[494,149],[494,241],[624,241],[624,160],[1006,160],[1006,583],[828,583],[828,624],[661,624],[661,613],[280,613],[280,405],[181,405]];
+  polyTop(outline,-.17,'#273345','base');polyTop(outline,-.08,'#78858d','base');
+  polyTop(outline,.012,S.style3d==='neon'?'#06101e':(S.style3d==='architect'?'#ffffff':'#ddd9cc'),'base');
+}
+
+function build(){
+  geometry=[];
+  fillFoundation();
+  const tileBase = S.style3d==='neon'?'#0b192c':(S.style3d==='synthwave'?'#1a092e':(S.style3d==='architect'?'#f0f4f7':colors.tile2));
+
+  floorWood(182,151,401,386,'master',1,colors.woodMaster,'#74573e','#a48163');
+  floorWood(182,58,312,149,'master',2,colors.woodMaster,'#74573e','#a48163');
+  topRect(312,58,485,149,.043,S.style3d==='neon'?'#091e32':colors.marble,'baths');floorGrout(312,58,485,149,35,'baths','#d5d8d4');
+  topRect(403,151,494,208,.044,tileBase,'baths');
+  topRect(403,208,494,323,.044,S.style3d==='neon'?'#0c2438':colors.bath,'baths');floorGrout(403,208,494,323,31,'baths');
+  topRect(495,242,626,323,.042,tileBase,'study');floorGrout(495,242,626,323,38,'study');
+  topRect(402,323,626,388,.041,tileBase,'study');floorGrout(402,323,626,388,48,'study');
+  floorWood(280,388,471,613,'bed1',3);floorWood(472,388,660,613,'bed2',4);
+  topRect(627,161,1004,582,.039,tileBase,'living');floorGrout(627,161,1004,582,51,'living');
+  topRect(664,581,829,623,.055,'#a97558','balcony');
+
+  if(S.furn){
+    const masterLit = rooms.find(r=>r.id==='master')?.lit;
+    // === 1. ALCOBA PRINCIPAL ===
+    cube(212,202,226,352,.92,'#f4f5f2',.05,'furn','master');
+    cube(210,199,228,355,.06,'#ffffff',.97,'furn','master');
+    cube(215,222,223,230,.09,'#cfd4d8',.90,'furn','master');
+    cube(215,324,223,332,.09,'#cfd4d8',.90,'furn','master');
+    cube(226,204,368,350,.28,'#f0f1ee',.06,'furn','master');
+    cube(228,206,365,348,.16,'#dfd8cc',.34,'furn','master');
+    cube(268,205,298,349,.03,'#f5f4f0',.50,'furn','master');
+    cube(273,205,279,349,.032,'#222629',.502,'furn','master');
+    cube(285,205,291,349,.032,'#222629',.502,'furn','master');
+    cube(230,214,262,272,.11,'#e8e0d5',.50,'furn','master');
+    cube(230,282,262,340,.11,'#e8e0d5',.50,'furn','master');
+
+    // Mesita de noche + Lámpara Luna (brilla intensamente cuando la luz de la Alcoba Principal está encendida)
+    cube(192,358,225,392,.44,'#f3f4f2',.05,'furn','master');
+    circle(208,375,7,.04,'#9e734c',.49,'furn','master');
+    sphere(208,375,12,masterLit?'#ffe566':'#fcfaf2',.53,'furn','master');
+    if(masterLit){
+      circle(208,375,36,.02,'#ffd700',.06,'top','master',0.32);
+    }
+
+    cube(192,162,225,196,.44,'#f3f4f2',.05,'furn','master');
+    cube(185,382,218,399,1.25,'#243d5e',.05,'furn','master');
+    cube(394,232,398,322,.62,'#15181c',.72,'furn','master');
+    cube(392,235,395,319,.56,masterLit?'#1c3d5a':'#0b0d10',.75,'furn','master');
+
+    // Vestier
+    cube(187,62,285,84,1.35,'#7a543c',.05,'furn','master');
+    circle(248,118,19,.11,'#2563a8',.05,'furn','master');
+    circle(248,118,14,.09,'#7cc447',.08,'furn','master');
+
+    // === 2. BAÑO PRINCIPAL ===
+    cube(332,146,341,154,1.45,'#4a3020',.05,'furn','baths');
+    cube(315,63,345,112,.68,'#8c6244',.05,'furn','baths');
+    cube(314,62,346,113,.06,'#181a1c',.73,'furn','baths');
+    circle(330,88,13,.14,'#ffffff',.79,'furn','baths');
+    cube(313,65,317,114,.72,'#c7ae7e',.92,'furn','baths');
+    cube(314,69,318,110,.64,'#a8c4d4',.96,'furn','baths');
+    cube(368,66,396,95,.36,'#f8f9fa',.05,'furn','baths');
+    cube(366,64,398,82,.42,'#ffffff',.36,'furn','baths');
+    cube(412,60,417,145,1.38,'#e5d8c0',.05,'furn','baths');
+
+    // === RESTO DEL APARTAMENTO ===
+    cube(423,174,476,198,.68,'#dbdad6',.05,'furn','baths');
+    circle(451,271,24,.26,'#f0f5f6',.05,'furn','baths');
+    // Alcoba 1
+    cube(298,456,456,571,.29,'#c69a7f',.055,'furn','bed1');cube(303,459,451,567,.21,'#b5467b',.35,'furn','bed1');
+    cube(304,460,321,565,.58,'#d7c0ba',.05,'furn','bed1');cube(288,402,458,422,.75,'#9e6248',.05,'furn','bed1');
+    // Alcoba 2
+    cube(486,456,649,571,.29,'#af9a82',.055,'furn','bed2');cube(490,460,645,566,.21,'#368fb8',.35,'furn','bed2');
+    cube(628,460,645,566,.6,'#a8d3dc',.05,'furn','bed2');cube(482,401,645,422,.73,'#9e6248',.05,'furn','bed2');
+    // Cocina y Lavadora Samsung
+    cube(709,174,954,221,.75,'#b6b9b5',.05,'furn','kitchen');cube(710,175,955,222,.085,'#494f52',.79,'furn','kitchen');
+    cube(709,263,894,300,.82,'#a6a6a1',.05,'furn','kitchen');cube(709,262,894,301,.085,'#ddd3c6',.86,'furn','kitchen');
+    cube(630,254,687,315,.68,'#f0f2ef',.05,'furn','kitchen');circle(659,286,18,.02,'#38bdf8',.75,'furn','kitchen');
+    cube(696,254,757,315,.68,'#d4ddd8',.05,'furn','kitchen');
+    // Estudio
+    cube(503,249,614,267,.72,'#a76d4f',.045,'furn','study');cube(528,273,576,297,.61,'#202a37',.04,'furn','study');
+    // Sala y Comedor
+    topRect(827,363,979,566,.06,'#aa978a','living');
+    cube(937,406,991,536,.36,'#e7e2dc',.06,'furn','living');cube(956,407,995,531,.52,'#ebe8e3',.41,'furn','living');
+    cube(843,478,906,527,.40,'#d3c2ae',.055,'furn','living');
+    cube(847,388,912,416,.59,'#33353a',.055,'furn','living');
+    cube(717,420,792,506,.59,'#9d6d4f',.08,'furn','living');cube(717,420,792,506,.075,'#be885d',.72,'furn','living');
+  }
+
+  // === DYNAMIC LIGHTING OVERLAYS PER ROOM (LIVE GLOW WHEN LIT) ===
+  rooms.forEach(r=>{
+    if(r.id!=='all' && r.lit && r.bounds){
+      const [x1,z1,x2,z2] = r.bounds;
+      const glowCol = S.style3d==='neon'?'#00e5ff':(S.style3d==='synthwave'?'#ff2c7d':'#ffd700');
+      topRect(x1+4,z1+4,x2-4,z2-4,.068,glowCol,r.id,false,0.24);
+      circle(r.px,r.pz,34,.04,glowCol,.07,'top',r.id,0.35);
+    }
+  });
+
+  const W=(x1,z1,x2,z2,a=null,g=[])=>wall(x1,z1,x2,z2,a,g);
+  W(180,56,485,56,'baths');W(180,56,180,405,'master');W(485,56,485,152,'baths');
+  W(180,405,280,405,'master');W(280,405,280,613,'bed1');W(280,613,661,613,null);W(661,613,661,581,'balcony');
+  W(661,581,1005,581,'living',[[.08,.45]]);W(1005,160,1005,581,'living');W(626,160,1005,160,'kitchen');
+  W(626,160,626,242,'kitchen');W(495,242,626,242,'study',[[.30,.63]]);W(495,152,495,323,'baths');
+  W(402,152,495,152,'baths');W(402,152,402,322,'master',[[.62,.92]]);
+  W(402,322,495,322,'baths',[[.08,.42]]);
+  W(180,151,485,151,'master',[[.69,.75]]);
+  W(311,56,311,151,'baths',[[.38,.62]]);
+  W(402,208,495,208,'baths');
+  W(495,323,626,323,'study',[[.34,.74]]);
+  W(280,387,663,387,null,[[.26,.39],[.68,.79]]);
+  W(472,387,472,613,'bed2');W(661,387,661,581,'living',[[.17,.56]]);
+}
+
+function normalize(a){const n=Math.hypot(...a)||1;return a.map(x=>x/n)}
+const sub=(a,b)=>a.map((v,i)=>v-b[i]),cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+function camBasis(){let {yaw,elev,dist,tx,ty,tz}=S;let eye=[tx+dist*Math.sin(yaw)*Math.cos(elev),ty+dist*Math.sin(elev),tz+dist*Math.cos(yaw)*Math.cos(elev)];let fw=normalize(sub([tx,ty,tz],eye)),right=normalize(cross(fw,[0,1,0])),up=normalize(cross(right,fw));return{eye,fw,right,up}}
+function project(p,c){let v=sub(p,c.eye),z=dot(v,c.fw);if(z<.05)return null;let sc=S.mode==='ortho'?Math.min(S.w/12.5,S.h/9.0)*17.8/S.dist:Math.min(S.w*1.10,S.h*1.52)/z;return [S.w/2+dot(v,c.right)*sc,S.h/2-dot(v,c.up)*sc,z]}
+
+function render(){
+  const c=camBasis();ctx.setTransform(S.dpr,0,0,S.dpr,0,0);ctx.clearRect(0,0,S.w,S.h);
+  let faces=[];
+  for(let it of geometry){
+    let pts=it.pts.map(p=>project(p,c));if(pts.some(p=>!p))continue;
+    let depth=pts.reduce((a,p)=>a+p[2],0)/pts.length;
+    let p0=it.pts[0],p1=it.pts[1],p2=it.pts[2],norm=normalize(cross(sub(p1,p0),sub(p2,p1)));
+    let bright=.75+.22*Math.max(0,dot(norm,normalize([-.6,1,-.45])));
+    const rObj = rooms.find(r=>r.id===it.area);
+    if(rObj && rObj.lit) bright = Math.min(1.25, bright * 1.18);
+    else if(rObj && !rObj.lit && it.kind!=='wall') bright *= 0.80;
+    faces.push({pts,depth,it,bright});
+  }
+  faces.sort((a,b)=>b.depth-a.depth);
+  for(let q of faces){
+    let {pts,it,bright}=q;ctx.beginPath();pts.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();
+    ctx.fillStyle=shade(it.color,bright,it.alpha);ctx.fill();
+    if(it.edge || S.style3d==='neon'){
+      ctx.strokeStyle=S.style3d==='neon'?'rgba(0,229,255,0.45)':(it.kind==='wall'?'#c5d5d7':'rgba(41,54,63,.18)');
+      ctx.lineWidth=S.style3d==='neon'?1.1:.65;ctx.stroke();
+    }
+  }
+  updateLabels(c);
+}
+
+function updateLabels(c){
+  if(!S.labels){labelsEl.style.display='none';return}labelsEl.style.display='block';
+  for(let r of rooms){
+    if(r.id==='all')continue;let el=document.getElementById('lab-'+r.id);if(!el)continue;
+    let p=project(V(r.px,r.pz,.095),c);if(!p||p[0]<20||p[0]>S.w-20||p[1]<35||p[1]>S.h-60){el.style.display='none';continue}
+    el.style.display='flex';el.style.left=p[0]+'px';el.style.top=p[1]+'px';
+    el.classList.toggle('selected',S.selected===r.id);
+    el.classList.toggle('lit',!!r.lit);
+    el.innerHTML=`<span>${r.lit?'💡':'🌑'} ${r.name}</span>`;
+  }
+}
+
+function resize(){let b=canvas.getBoundingClientRect();S.dpr=Math.min(window.devicePixelRatio||1,2);S.w=b.width;S.h=b.height;canvas.width=Math.round(b.width*S.dpr);canvas.height=Math.round(b.height*S.dpr);render()}
+function tween(dest,ms=600){S.anim={from:{yaw:S.yaw,elev:S.elev,dist:S.dist,tx:S.tx,ty:S.ty,tz:S.tz},to:dest,start:performance.now(),ms};animate()}
+let raf=0;function animate(){if(raf)return;function step(){raf=0;if(!S.anim)return;let a=S.anim,t=Math.min(1,(performance.now()-a.start)/a.ms),k=1-(1-t)*(1-t)*(1-t);for(let key of Object.keys(a.to))S[key]=a.from[key]+(a.to[key]-a.from[key])*k;render();if(t<1)raf=requestAnimationFrame(step);else S.anim=null;}raf=requestAnimationFrame(step)}
+
+function setView(id){
+  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===id));let v;
+  if(id==='top'){S.mode='ortho';v={yaw:0,elev:Math.PI/2-.001,dist:17.8,tx:0,ty:0,tz:0}}
+  else{S.mode='persp';if(id==='front')v={yaw:0,elev:.43,dist:20.2,tx:0,ty:.3,tz:0};else if(id==='side')v={yaw:1.49,elev:.65,dist:19,tx:0,ty:0,tz:0};else v={yaw:-.48,elev:.94,dist:17.8,tx:0,ty:0,tz:0}}
+  tween(v);
+}
+
+function focus(id){
+  S.selected=id;
+  document.querySelectorAll('.room-btn').forEach(b=>b.classList.toggle('active',b.dataset.room===id));
+  const r=rooms.find(q=>q.id===id);build();
+  if(id==='all'){tween({yaw:-.48,elev:.94,dist:17.8,tx:0,ty:0,tz:0})}
+  else{const t=V(r.px,r.pz,0);tween({yaw:S.mode==='ortho'?0:-.40,elev:S.mode==='ortho'?1.569:.98,dist:r.zoom,tx:t[0],ty:0,tz:t[2]});}
+}
+
+window.toggleRoomLight3D = function(roomId, notifyParent=true){
+  const r = rooms.find(q=>q.id===roomId);
+  if(!r || r.id==='all') return;
+  r.lit = !r.lit;
+  const btn = document.getElementById('lbtn-'+roomId);
+  if(btn) btn.classList.toggle('lit', r.lit);
+  build();render();
+  if(notifyParent && window.parent && window.parent !== window){
+    window.parent.postMessage({ type: 'FLOORPLAN_TOGGLE_ROOM', roomId: r.id, wpRoom: r.wpRoom, state: r.lit }, '*');
+  }
+};
+
+window.toggleAll3DLights = function(state){
+  rooms.forEach(r=>{
+    if(r.id!=='all'){
+      r.lit = state;
+      const btn = document.getElementById('lbtn-'+r.id);
+      if(btn) btn.classList.toggle('lit', r.lit);
+    }
+  });
+  build();render();
+  if(window.parent && window.parent !== window){
+    window.parent.postMessage({ type: 'FLOORPLAN_TOGGLE_ALL', state }, '*');
+  }
+};
+
+window.set3DStyle = function(styleName, btnEl){
+  S.style3d = styleName;
+  document.querySelectorAll('[data-style3d]').forEach(b=>b.classList.remove('active'));
+  if(btnEl) btnEl.classList.add('active');
+  const mainEl = document.getElementById('main');
+  mainEl.className = 'style-' + styleName;
+  build();render();
+};
+
+// Listen for real Tuya/SmartThings light state updates from parent Wall Panel
+window.addEventListener('message', (e)=>{
+  const msg = e.data;
+  if(!msg || typeof msg !== 'object') return;
+  if(msg.type === 'SYNC_ROOM_LIGHTS' && msg.roomStates){
+    Object.entries(msg.roomStates).forEach(([roomId, isLit])=>{
+      const r = rooms.find(q=>q.id===roomId || q.wpRoom===roomId);
+      if(r){
+        r.lit = !!isLit;
+        const btn = document.getElementById('lbtn-'+r.id);
+        if(btn) btn.classList.toggle('lit', r.lit);
+      }
+    });
+    build();render();
+  } else if(msg.type === 'SET_3D_STYLE' && msg.style){
+    S.style3d = msg.style;
+    build();render();
+  }
+});
+
+function initSidebar(){
+  let r=document.getElementById('rooms');
+  rooms.forEach(o=>{
+    let row=document.createElement('div');row.className='room-row';
+    let b=document.createElement('button');b.className='room-btn'+(o.id==='all'?' active':'');b.dataset.room=o.id;
+    b.innerHTML=`<span class="dot" style="--dot:${o.color}"></span><span>${o.name}</span>`;
+    b.addEventListener('click',()=>focus(o.id));
+    row.appendChild(b);
+    if(o.id!=='all'){
+      let lb=document.createElement('button');
+      lb.id='lbtn-'+o.id;
+      lb.className='light-toggle-btn'+(o.lit?' lit':'');
+      lb.title='Encender / Apagar luz de '+o.name;
+      lb.innerHTML='💡';
+      lb.addEventListener('click',(ev)=>{ev.stopPropagation();toggleRoomLight3D(o.id,true);});
+      row.appendChild(lb);
+    }
+    r.appendChild(row);
+  });
+  rooms.slice(1).forEach(o=>{
+    let b=document.createElement('button');b.id='lab-'+o.id;b.className='room-label'+(o.lit?' lit':'');
+    b.innerText=o.name;b.title='Clic para enfocar / Doble clic para encender luz de '+o.name;
+    b.addEventListener('click',e=>{e.stopPropagation();focus(o.id)});
+    b.addEventListener('dblclick',e=>{e.stopPropagation();toggleRoomLight3D(o.id,true)});
+    labelsEl.appendChild(b);
+  });
+}
+
+let pointer=null;
+canvas.addEventListener('pointerdown',e=>{if(e.button!==0)return;S.anim=null;pointer={id:e.pointerId,x:e.clientX,y:e.clientY,shift:e.shiftKey};canvas.setPointerCapture(e.pointerId);canvas.classList.add('dragging')});
+canvas.addEventListener('pointermove',e=>{if(!pointer||pointer.id!==e.pointerId)return;let dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer.x=e.clientX;pointer.y=e.clientY;
+  if(pointer.shift){let b=camBasis(),factor=S.dist/Math.min(S.w,S.h)*.72;S.tx-=b.right[0]*dx*factor;S.tz-=b.right[2]*dx*factor;S.tx+=Math.sin(S.yaw)*dy*factor;S.tz+=Math.cos(S.yaw)*dy*factor;}
+  else{S.yaw-=dx*.007;S.elev=Math.max(.18,Math.min(1.569,S.elev+dy*.0065));}render()});
+function endPointer(e){if(pointer&&pointer.id===e.pointerId){pointer=null;canvas.classList.remove('dragging')}}
+canvas.addEventListener('pointerup',endPointer);canvas.addEventListener('pointercancel',endPointer);
+canvas.addEventListener('wheel',e=>{e.preventDefault();S.anim=null;S.dist=Math.max(4.2,Math.min(36,S.dist*Math.exp(e.deltaY*.00095)));render()},{passive:false});
+function zoom(amount){S.dist=Math.max(4.2,Math.min(36,S.dist*amount));render()}
+document.getElementById('zoomIn').onclick=()=>zoom(.82);document.getElementById('zoomOut').onclick=()=>zoom(1.22);
+document.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+document.querySelectorAll('[data-wall]').forEach(b=>b.addEventListener('click',()=>{S.walls=b.dataset.wall;document.querySelectorAll('[data-wall]').forEach(x=>x.classList.toggle('active',x===b));build();render()}));
+document.getElementById('toggleFurn').onclick=e=>{S.furn=!S.furn;e.currentTarget.classList.toggle('active',S.furn);build();render()};
+document.getElementById('toggleLabels').onclick=e=>{S.labels=!S.labels;e.currentTarget.classList.toggle('active',S.labels);render()};
+document.getElementById('reset').onclick=()=>{S.mode='persp';S.selected='all';setView('iso');build();};
+document.getElementById('btnShot').onclick=()=>{let a=document.createElement('a');a.download='apartamento_3d_iot.png';a.href=canvas.toDataURL('image/png');a.click()};
+window.addEventListener('resize',resize);initSidebar();build();resize();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+/* ======================================
+   DEVICE WIDGET STYLES (Dashboard) - Fully Responsive
+   ====================================== */
+
+.device-widget-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: clamp(10px, 2cqh, 20px);
+    gap: clamp(8px, 2cqh, 15px);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.device-widget-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+}
+
+.device-widget-card.device-on {
+    background: linear-gradient(135deg,
+            rgba(255, 215, 0, 0.15) 0%,
+            rgba(255, 215, 0, 0.05) 100%);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.device-widget-icon {
+    width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 60%;
+}
+
+.device-widget-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    max-width: clamp(60px, 20cqw, 150px);
+    max-height: clamp(60px, 20cqh, 150px);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.device-widget-card:hover .device-widget-icon img {
+    transform: scale(1.05);
+}
+
+.device-widget-card.device-on .device-widget-icon img {
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.device-widget-name {
+    font-size: clamp(0.8rem, 2.5cqh, 1.3rem);
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 auto;
+}
+
+.device-widget-power {
+    width: clamp(35px, 8cqw, 50px);
+    height: clamp(35px, 8cqw, 50px);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex: 0 0 auto;
+}
+
+.device-widget-card.device-on .device-widget-power {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-color: #FFD700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+}
+
+.device-widget-power i {
+    font-size: clamp(0.9rem, 3cqw, 1.3rem);
+    color: white;
+}

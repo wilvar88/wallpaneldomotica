@@ -1,0 +1,2533 @@
+/* ========================================
+   WALL PANEL V3 - ESTILOS
+   ======================================== */
+
+:root {
+    /* Colores */
+    --primary-yellow: #FFD700;
+    --primary-yellow-glow: rgba(255, 217, 0, 0.759);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-highlight: rgba(255, 255, 255, 0.1);
+    --text-main: #FFFFFF;
+    --text-dim: rgba(255, 255, 255, 0.779);
+
+    /* Espaciado */
+    --header-height: 100px;
+    --card-radius: 20px;
+    --gap: 1px;
+
+    /* Fuentes */
+    --font-main: 'Inter', sans-serif;
+}
+
+* {
+    margin: 2px;
+    padding: 2px;
+    box-sizing: border-box;
+    user-select: none;
+    /* Prevent text selection on touch */
+}
+
+body {
+    font-family: var(--font-main);
+    color: var(--text-main);
+    overflow: hidden;
+    /* App feel */
+    height: 100vh;
+    width: 100vw;
+    background-color: #121212;
+}
+
+/* Fondo Animado/Imagen */
+.background-layer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    background-image: url('backgrounds/Fondo 2.jpg');
+    /* Default */
+    background-size: cover;
+    background-position: center;
+    transition: filter 0.5s ease;
+}
+
+.background-layer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.15);
+    /* More transparent overlay */
+}
+
+.app-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0 !important;
+    /* REDUCE MARGINS as requested */
+    overflow: hidden;
+}
+
+/* ========================================
+   HEADER
+   ======================================== */
+.header {
+    height: var(--header-height);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(40, 40, 40, 0.112);
+    backdrop-filter: blur(5px);
+    border-radius: 12px;
+    padding: 0 30px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.308);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+    font-size: 1.2rem;
+    color: var(--primary-yellow);
+}
+
+.header-info {
+    display: flex;
+    align-items: center;
+    gap: 50px;
+}
+
+.weather-widget {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 5px 15px;
+    border-radius: 8px;
+}
+
+.weather-temp {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.weather-location {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+}
+
+.time-display {
+    font-size: 1.5rem;
+    font-weight: 900;
+}
+
+.settings-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: color 0.3s;
+}
+
+.settings-btn:hover {
+    color: white;
+    transform: rotate(90deg);
+}
+
+/* ========================================
+   MAIN CONTENT & VIEWS
+   ======================================== */
+.main-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.view-section {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    transform: scale(0.95);
+    display: flex;
+    flex-direction: column;
+}
+
+.view-section.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: scale(1);
+    z-index: 10;
+}
+
+/* ========================================
+   HOME VIEW (Vertical Cards)
+   ======================================== */
+.home-grid {
+    display: flex;
+    height: 100%;
+    gap: 19px;
+    align-items: stretch;
+    /* Cards stretch full height */
+}
+
+.room-card {
+    flex: 1;
+    /* Todos ocupan el mismo ancho */
+    background: rgba(175, 184, 2, 0);
+    /* Más transparente */
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    /* Borde más sutil */
+    border-radius: var(--card-radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 2.5vh 10px;
+    /* Reducir padding vertical */
+    margin: 10px 0;
+    /* Margen para hacerlas visualmente más pequeñas verticalmente */
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.room-card:hover {
+    background: rgba(50, 50, 50, 0.35);
+    /* Un poco más oscuro al hover */
+    transform: translateY(-5px);
+    box-shadow: 0 10px 10px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.room-card:active {
+    transform: scale(0.98);
+}
+
+.card-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-yellow);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.card-icon {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.card-icon img {
+    max-width: 90%;
+    max-height: 180px;
+    filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.5));
+    transition: filter 0.3s;
+}
+
+.card-footer {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--primary-yellow);
+}
+
+/* Efecto de luz en tarjetas activas (si hay dispositivos encendidos) */
+.room-card.has-active-devices {
+    box-shadow: 0 0 40px rgba(255, 215, 0, 0.15) inset;
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.room-card.has-active-devices .card-icon img {
+    filter: drop-shadow(0 0 15px var(--primary-yellow));
+}
+
+/* ========================================
+   ROOM DETAIL VIEW
+   ======================================== */
+.room-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.room-title {
+    font-size: 2.5rem;
+    color: var(--primary-yellow);
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    text-transform: uppercase;
+}
+
+.back-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 2.5rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.back-btn:hover {
+    transform: translateX(-5px);
+    color: var(--primary-yellow);
+}
+
+.room-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    /* Custom Scrollbar styling if needed */
+}
+
+.device-grid-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 20px;
+    padding-bottom: 80px;
+    /* Space for configuration button */
+}
+
+.floating-config-btn {
+    position: absolute;
+    bottom: 50px;
+    right: 50px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.3);
+}
+
+.floating-config-btn:hover {
+    background: var(--primary-yellow);
+    color: black;
+    transform: scale(1.1) rotate(180deg);
+}
+
+/* ========================================
+   DEVICE CARDS (Inside Room)
+   ======================================== */
+.device-card {
+    background: rgba(255, 255, 255, 0.08);
+    /* Restore glass background */
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    height: 100%;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* Transparent when inside a dashboard widget card */
+.widget-card .device-card {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 5px !important;
+}
+
+.device-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+}
+
+.device-card.device-on {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.5);
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.1);
+}
+
+.device-icon-large {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+}
+
+.device-icon-large img {
+    width: auto;
+    height: clamp(60px, 60cqh, 250px);
+    max-width: 90%;
+    object-fit: contain;
+    filter: invert(1);
+}
+
+/* Si los iconos ya son de color o blancos, ajusta esto */
+.device-card .device-icon-large img {
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.device-card.device-on .device-icon-large img {
+    filter: drop-shadow(0 0 10px var(--primary-yellow));
+}
+
+.device-name-text {
+    text-align: center;
+    font-weight: 600;
+    font-size: clamp(0.9rem, 12cqh, 1.8rem);
+    line-height: 1.2;
+    color: white;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.power-btn-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-top: auto;
+    /* Push to bottom */
+}
+
+.device-card.device-on .power-btn-small {
+    border-color: var(--primary-yellow);
+    color: var(--primary-yellow);
+    box-shadow: 0 0 10px var(--primary-yellow-glow);
+}
+
+/* ========================================
+   MODALS - MULTI SWITCH ANIMATION
+   ======================================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000 !important;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: #b1b1b14f;
+    /* Fondo casi negro sólido como en la imagen */
+    border: 1px solid #000000;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 1200px;
+    max-height: 150vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    /* Animación Zoom y Giro suave */
+    transform: scale(0.8) rotateX(10deg);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+}
+
+.modal-overlay.active .modal-content {
+    transform: scale(1) rotateX(0);
+    opacity: 1;
+}
+
+/* Multi-Switch Grid inside Modal */
+.multi-switch-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    padding: 40px;
+    justify-content: center;
+}
+
+.switch-sub-card {
+    background: #2525258b;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    border: 1px solid #333;
+    transition: all 0.3s;
+}
+
+.switch-sub-card:hover {
+    border-color: #555;
+    transform: translateY(-2px);
+}
+
+/* Dashboard & Widgets */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 20px 40px 100px 40px;
+    height: 100%;
+    overflow-y: auto;
+    align-content: flex-start;
+}
+
+.dashboard-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px;
+    color: rgba(255, 255, 255, 0.3);
+    text-align: center;
+}
+
+.dashboard-empty i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.dashboard-controls {
+    padding: 20px 40px 0 40px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 20px;
+}
+
+.dash-edit-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--primary-yellow);
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.3s;
+    backdrop-filter: blur(5px);
+}
+
+.dash-edit-btn:hover {
+    background: var(--primary-yellow);
+    color: #000;
+    transform: rotate(45deg) scale(1.1);
+}
+
+#dashboard-view.edit-mode .dash-edit-btn {
+    background: var(--primary-yellow);
+    color: #000;
+    box-shadow: 0 0 15px var(--primary-yellow-glow);
+}
+
+.dash-actions {
+    display: none;
+    /* Hidden by default */
+}
+
+#dashboard-view.edit-mode .dash-actions {
+    display: block;
+    /* Show only in edit mode */
+}
+
+.add-widget-btn {
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid var(--primary-yellow);
+    color: var(--primary-yellow);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.add-widget-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+/* Widget Gallery */
+.widget-gallery {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.gallery-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.gallery-item:hover {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: var(--primary-yellow);
+    transform: scale(1.02);
+}
+
+.gallery-item i {
+    font-size: 2rem;
+    color: var(--primary-yellow);
+}
+
+.gallery-item span {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* Specific Widget Styles */
+.widget-card {
+    position: relative;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 5px;
+    /* Minimal padding to maximize content space */
+    background: rgba(255, 255, 255, 0.08);
+    /* More distinct semi-transparency */
+    backdrop-filter: blur(15px);
+    /* Stronger glass blur */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Subtle glass edge */
+    border-radius: 24px;
+    /* Smoother rounded corners */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    /* Stronger shadow for depth */
+    container-type: size;
+}
+
+.widget-remove-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 0, 0, 0.4);
+    /* Slightly More visible */
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s;
+    z-index: 100;
+    /* Force it on top */
+}
+
+.widget-card:hover .widget-remove-btn {
+    opacity: 1;
+}
+
+.widget-remove-btn:hover {
+    background: #ff4444;
+}
+
+/* =========================================
+   SPECIALIZED WIDGETS (Phase 3)
+   ========================================= */
+
+/* ADVANCED 3D FLIP SYSTEM */
+.flip-clock-container,
+.flip-calendar-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8cqw;
+    /* Tightened gap for a more compact unit */
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    perspective: 1000px;
+}
+
+.flip-digit-group {
+    position: relative;
+    height: 80%;
+    aspect-ratio: 0.8 / 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.flip-card {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    line-height: 1;
+    font-size: clamp(2rem, 35cqh, 8.5rem);
+    /* Smaller digits, more contained */
+    font-weight: 800;
+    color: #eee;
+    /* Mechanical silver/grey */
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* Small gap to emphasize the split */
+    padding: 2px;
+    box-sizing: border-box;
+    /* Create "stacked leaves" illusion via shadows */
+    box-shadow: 2px 0 0 -2px #0a0a0a3a,
+        1px 0 0 -1px #05050525,
+        -1px 0 0 -1px #0a0a0a3b,
+        -1px 0 0 -1px #05050536;
+}
+
+.flip-card>div {
+    position: relative;
+    width: 100%;
+    height: 50%;
+    overflow: hidden;
+    background: #0f0f0f;
+}
+
+.flip-card .top {
+    border-top: 6px solid rgba(255, 255, 255, 0.15);
+    border-radius: 30px 30px 4px 4px;
+    /* Smoother rounded corners */
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    background: linear-gradient(135deg, #333 0%, #1a1a1a 50%, #0a0a0a 100%);
+    box-shadow: inset 0 4px 4px rgba(255, 255, 255, 0.1),
+        inset 0 -6px 10px rgba(0, 0, 0, 0.9);
+}
+
+.flip-card .bottom {
+    border-radius: 4px 4px 30px 30px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    background: linear-gradient(180deg, #111, #000);
+    border-top: 4px solid rgba(0, 0, 0, 0.9);
+    box-shadow: inset 5 4px 12px rgba(0, 0, 0, 0.9),
+        inset 0 -9px 9px rgba(255, 255, 255, 0.05);
+}
+
+/* Glass Shine Reflection */
+.flip-card::after {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 10%;
+    width: 90%;
+    height: 40%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    border-radius: 8px 8px 0 0;
+    z-index: 5;
+}
+
+/* Vertical text alignment spanning two halves */
+.flip-card .top {
+    padding-bottom: 0;
+    line-height: 0;
+    /* Align digits at the split */
+}
+
+.flip-card .bottom {
+    padding-top: 0;
+    line-height: 0;
+}
+
+/* Remove leaf elements */
+.flip-card .leaf {
+    display: none !important;
+}
+
+.flip-card.flipping .leaf {
+    transform: rotateX(-180deg);
+}
+
+.leaf-front,
+.leaf-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    justify-content: center;
+}
+
+.leaf-front {
+    background: linear-gradient(180deg, #333, #222);
+    border-radius: 8px 8px 0 0;
+    align-items: flex-start;
+    padding-top: 15%;
+    z-index: 2;
+}
+
+.leaf-back {
+    background: linear-gradient(180deg, #1a1a1a, #000);
+    border-radius: 0 0 8px 8px;
+    transform: rotateX(-180deg);
+    align-items: flex-end;
+    padding-bottom: 15%;
+    display: flex;
+}
+
+.flip-separator {
+    font-size: 4cqh;
+    color: rgba(255, 255, 255, 0.2);
+    font-weight: 900;
+}
+
+/* CALENDAR SPECIFIC */
+.flip-calendar-container {
+    flex-direction: column;
+    gap: 0;
+}
+
+.cal-month {
+    background: #000000;
+    width: 100%;
+    text-align: center;
+    color: white;
+    font-weight: 1500;
+    padding: 5px 0;
+    border-radius: 8px 8px 0 0;
+    font-size: clamp(1.8rem, 15cqh, 2.5rem);
+    z-index: 8;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.widget-flip-calendar .cal-month {
+    background: linear-gradient(180deg, #000000, #e60000);
+    width: 100%;
+    color: white;
+    font-weight: 800;
+    text-align: center;
+    border-radius: 9px 9px 0 0;
+    font-size: clamp(1rem, 15cqh, 2.5rem);
+    padding: 2px 0;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.3),
+        0 4px 10px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+}
+
+.widget-flip-calendar .flip-card {
+    height: 70%;
+    width: 100%;
+    box-shadow: 0 4px 0 -2px #ccc,
+        0 8px 0 -4px #bbb;
+    /* Downward stack for calendar */
+    color: white;
+}
+
+.widget-flip-calendar .flip-card>div,
+.widget-flip-calendar .leaf-front,
+.widget-flip-calendar .leaf-back {
+    background: #fff !important;
+    color: #090909 !important;
+}
+
+.widget-flip-calendar .flip-card .top,
+.widget-flip-calendar .leaf-front {
+    border-radius: 0 0 4px 4px;
+    background: linear-gradient(135deg, #ffffff 0%, #dedddd 100%) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+}
+
+.widget-flip-calendar .flip-card .bottom,
+.widget-flip-calendar .leaf-back {
+    border-radius: 5px 5px 20px 20px;
+    background: linear-gradient(180deg, #fdfdfd, #e5e5e5) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+}
+
+.widget-flip-calendar .flip-card::after {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, transparent 60%);
+}
+
+/* WEATHER DASHBOARD */
+.widget-weather-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px;
+    width: 100%;
+    height: 100%;
+    gap: 12px;
+    box-sizing: border-box;
+    transition: background 1s ease;
+}
+
+.widget-weather-card[data-state="night"] {
+    background: rgba(2, 79, 155, 0.325);
+}
+
+.widget-weather-card[data-state="day"] {
+    background: rgba(255, 255, 200, 0.05);
+}
+
+.dash-weather-visuals {
+    position: relative;
+    width: clamp(5rem, 45cqh, 12rem);
+    height: clamp(5rem, 45cqh, 12rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dash-weather-icon {
+    position: absolute;
+    filter: drop-shadow(0 0 15px inherit);
+    transition: all 0.5s ease;
+}
+
+.dash-weather-icon.base {
+    font-size: clamp(4rem, 40cqh, 10rem);
+    z-index: 1;
+}
+
+.dash-weather-icon.overlay {
+    font-size: clamp(2.5rem, 25cqh, 6rem);
+    z-index: 3;
+    bottom: 5%;
+    right: 5%;
+    color: rgba(255, 255, 255, 0.9);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.4));
+}
+
+/* Animations for Weather */
+.fa-sun {
+    animation: sunPulse 4s infinite ease-in-out;
+}
+
+.fa-moon {
+    animation: moonFloat 6s infinite ease-in-out;
+}
+
+.fa-cloud-showers-heavy,
+.fa-cloud-rain {
+    animation: rainDrip 2s infinite linear;
+}
+
+@keyframes sunPulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 15px #ffce54);
+    }
+
+    50% {
+        transform: scale(1.05);
+        filter: drop-shadow(0 0 30px #ffce54);
+    }
+}
+
+@keyframes moonFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+        transform: translateY(-5px) rotate(5deg);
+    }
+}
+
+@keyframes rainDrip {
+    0% {
+        transform: translateY(0);
+        opacity: 0.8;
+    }
+
+    50% {
+        transform: translateY(3px);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 0.8;
+    }
+}
+
+.dash-weather-temp {
+    font-size: clamp(1.8rem, 28cqh, 5.5rem);
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.dash-weather-loc {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.dash-weather-desc {
+    font-size: 1rem;
+    font-weight: 500;
+    color: white;
+    text-transform: capitalize;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.switch-sub-icon {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.switch-sub-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: opacity(0.7);
+}
+
+.switch-sub-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #ddd;
+    text-align: center;
+}
+
+.switch-sub-toggle {
+    width: 100%;
+    padding: 10px;
+    background: #333;
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #888;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+/* Estado Activo Sub-Card */
+.switch-sub-card.active .switch-sub-icon img {
+    filter: drop-shadow(0 0 8px var(--primary-yellow));
+    opacity: 3;
+}
+
+.switch-sub-card.active .switch-sub-toggle {
+    background: var(--primary-yellow);
+    color: black;
+    border-color: var(--primary-yellow);
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+.modal-header {
+    padding: 20px;
+    background: #252525;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.config-group {
+    margin-bottom: 25px;
+}
+
+.config-group h3 {
+    margin-bottom: 10px;
+    color: var(--primary-yellow);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+}
+
+.switch-toggle-group {
+    display: flex;
+    background: #333;
+    border-radius: 8px;
+    padding: 2px;
+}
+
+.toggle-option {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: white;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.toggle-option.active {
+    background: var(--primary-yellow);
+    color: black;
+    font-weight: bold;
+}
+
+.device-select-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.device-checkbox-item {
+    background: #333;
+    padding: 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.device-checkbox-item.checked {
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid var(--primary-yellow);
+}
+
+.modal-footer {
+    padding: 20px;
+    background: #252525;
+    text-align: right;
+}
+
+.save-btn {
+    background: var(--primary-yellow);
+    color: black;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ========================================
+   CAMERA SPECIFIC MODAL & UI
+   ======================================== */
+.modal-content.modal-camera {
+    max-width: 600px !important;
+    /* Forzar tamaño reducido */
+    width: 600px !important;
+    aspect-ratio: 16/10 !important;
+    height: auto !important;
+    transition: all 0.5s ease;
+}
+
+.modal-content.modal-camera.fullscreen {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    height: 90vh !important;
+}
+
+.camera-container {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.camera-video {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    object-fit: contain;
+}
+
+.camera-toolbar {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 25px;
+    border-radius: 30px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    opacity: 0.9;
+    /* Casi siempre visible para touch */
+    transition: opacity 0.3s;
+    z-index: 10;
+}
+
+.camera-container:hover .camera-toolbar {
+    opacity: 1;
+}
+
+.cam-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.cam-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--primary-yellow);
+}
+
+.cam-btn.active {
+    color: var(--primary-yellow);
+}
+
+#cameraLoading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    color: #fff;
+    z-index: 5;
+}
+
+/* ========================================
+   MUSIC PLAYER
+   ======================================== */
+.music-content-full {
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 80px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* ========================================
+   MUSIC CARD HORIZONTAL WITH SPOTIFY
+   ======================================== */
+/* ========================================
+   MUSIC CARD HORIZONTAL (Image Only)
+   ======================================== */
+.music-card-horizontal {
+    padding: 0;
+    overflow: hidden;
+    position: relative;
+    background: rgba(30, 30, 30, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    /* Space out header, art, controls */
+}
+
+.music-card-header {
+    width: 100%;
+    padding: 25px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 2;
+    flex-shrink: 0;
+}
+
+.music-card-title {
+    font-size: 1rem;
+    font-weight: 900;
+    color: var(--primary-yellow);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.music-card-art {
+    flex: 5;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.music-card-art img {
+    height: 100%;
+    max-height: 210px;
+    /* Smaller fit */
+    width: 210px;
+    object-fit: contain;
+    border-radius: 2px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s;
+}
+
+/* Controls Container */
+.music-mini-controls {
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+.music-ctrl-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.music-ctrl-btn:hover {
+    background: var(--primary-yellow);
+    color: black;
+    transform: scale(1.1);
+}
+
+.music-ctrl-btn.small {
+    width: 30px;
+    height: 30px;
+    font-size: 0.9rem;
+}
+
+.music-ctrl-btn.play {
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+    background: rgba(255, 215, 0, 0.2);
+    color: var(--primary-yellow);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.music-ctrl-btn.play:hover {
+    background: var(--primary-yellow);
+    color: black;
+    box-shadow: 0 0 15px var(--primary-yellow-glow);
+}
+
+.music-card-horizontal:hover .music-card-art img {
+    transform: scale(1.1);
+}
+
+/* Initial Full Music View styling was okay, just ensuring height */
+.music-content-full iframe {
+    box-shadow: 0 90px 90px rgba(0, 0, 0, 0.5);
+}
+
+/* ========================================
+   SPOTIFY INTEGRATION STYLES
+   ======================================== */
+.spotify-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    color: #1DB954;
+    /* Spotify Green */
+    cursor: pointer;
+    transition: opacity 0.3s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.spotify-overlay.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.spotify-overlay span {
+    color: white;
+    font-weight: 900;
+    margin-top: 1px;
+}
+
+.music-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 90%;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.music-track-info {
+    text-align: center;
+    padding: 0 10px 5px 10px;
+    width: 100%;
+}
+
+.music-track-title {
+    font-size: 1.0rem;
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.music-track-artist {
+    font-size: 0.9rem;
+    color: rgb(218, 180, 10);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 130px;
+}
+
+/* ========================================
+   AIR QUALITY & SENSOR STYLES
+   ======================================== */
+.aq-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
+    padding: 10px;
+}
+
+.aq-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.aq-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-3px);
+}
+
+.aq-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.aq-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+}
+
+.aq-unit {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-left: 2px;
+}
+
+/* Indicators based on quality */
+.aq-status-good {
+    border-color: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.1);
+}
+
+.aq-status-fair {
+    border-color: #ffcc00;
+    box-shadow: 0 0 10px rgba(255, 204, 0, 0.1);
+}
+
+.aq-status-poor {
+    border-color: #ff4444;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.1);
+}
+
+/* ========================================
+   ST STAT CARDS ENHANCEMENT
+   ======================================== */
+.st-stat-card {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.st-stat-card .label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+}
+
+.st-stat-card .value {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.st-stat-card .value.large {
+    font-size: 1.6rem;
+}
+
+.st-ctrl-btn {
+    padding: 12px 25px;
+    border-radius: 10px;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    background: var(--primary-yellow);
+    color: black;
+    transition: all 0.2s;
+}
+
+.st-ctrl-btn.stop {
+    background: #ff4444;
+    color: white;
+}
+
+.st-ctrl-btn:active {
+    transform: scale(0.95);
+}
+
+.st-ctrl-btn.small {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+}
+
+/* Loading Toast/Notification */
+.notification-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--primary-yellow);
+    display: none;
+}
+
+/* =========================================
+   HEADER INTERNAL MONITOR
+   ======================================== */
+.internal-status-bar {
+    display: flex;
+    gap: 8px;
+    margin-right: 15px;
+}
+
+.status-pill {
+    background: rgba(0, 0, 0, 0.6);
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    padding: 15px 25px;
+    border-radius: 18px;
+    font-size: 1.8rem;
+    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 130px;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.status-pill::before {
+    content: attr(data-label);
+    font-size: 0.9rem;
+    color: #eee;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+/* Status Colors */
+.pill-ok {
+    border-color: #00ff88;
+    color: #00ff88;
+    box-shadow: 0 0 5px rgba(0, 255, 136, 0.2);
+}
+
+.pill-warn {
+    border-color: #ffcc00;
+    color: #ffcc00;
+    box-shadow: 0 0 5px rgba(255, 204, 0, 0.2);
+}
+
+.pill-danger {
+    border-color: #ff4444;
+    color: #ff4444;
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    animation: pulse-danger 1s infinite alternate;
+}
+
+@keyframes pulse-danger {
+    from {
+        opacity: 1;
+    }
+
+    to {
+        opacity: 0.6;
+    }
+}
+
+/* Shake Animation for App Container */
+.alert-shake {
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    transform: translate3d(0, 0, 0);
+    border: 2px solid #ff4444 !important;
+}
+
+@keyframes shake {
+
+    10,
+    90% {
+        transform: translate3d(-1px, 0, 0);
+    }
+
+    20,
+    80% {
+        transform: translate3d(2px, 0, 0);
+    }
+
+    30,
+    50,
+    70% {
+        transform: translate3d(-4px, 0, 0);
+    }
+
+    40,
+    60% {
+        transform: translate3d(4px, 0, 0);
+    }
+}
+
+/* =========================================
+   CAROUSEL & DASHBOARD SYSTEM
+   ========================================= */
+.carousel-viewport {
+    overflow: hidden !important;
+    position: relative;
+    width: 100%;
+    /* Asegurar que ocupe el espacio disponible sin padding extra que rompa */
+    box-sizing: border-box;
+    padding: 0 !important;
+    /* Quitar padding del main para que el carrusel mande */
+}
+
+.view-carousel {
+    display: flex;
+    width: 200vw;
+    /* Usar Width de Viewport para asegurar tamaño real */
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.carousel-page {
+    width: 100vw !important;
+    /* Cada página es 1 pantalla completa */
+    height: 100%;
+    flex-shrink: 0;
+    overflow-y: auto;
+    padding: 2rem 2rem;
+    /* Padding interno para que el contenido respire */
+    box-sizing: border-box;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    position: relative;
+    /* Support absolute positioning of children */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-auto-rows: min-content;
+    gap: 20px;
+    padding: 20px 40px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* Edit Mode Overrides */
+.dashboard-view.edit-mode .dashboard-grid {
+    /* Optional: can switch to display: block if absolute positioning is preferred for ALL widgets */
+    /* For now, let's keep grid but allow individual overrides if needed */
+}
+
+#dashboard-view.edit-mode .widget-card {
+    border: 1px dashed var(--primary-yellow) !important;
+    cursor: move;
+    /* Indicate draggability */
+    resize: both;
+    overflow: hidden;
+    /* Needed for resize property */
+    min-height: 150px;
+    min-width: 250px;
+    background: rgba(255, 255, 255, 0.05);
+    /* Ensure semi-transparency in edit mode */
+    backdrop-filter: blur(15px);
+    border-radius: 24px;
+    /* Ensure corners stay rounded in edit mode */
+}
+
+#dashboard-view.edit-mode .widget-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 15px;
+    height: 15px;
+    background: linear-gradient(135deg, transparent 50%, var(--primary-yellow) 50%);
+    cursor: nwse-resize;
+    pointer-events: none;
+}
+
+.dashboard-empty {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Indicators */
+.page-indicators {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 1000;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.dot.active {
+    background: var(--primary-yellow);
+    box-shadow: 0 0 15px var(--primary-yellow);
+    transform: scale(1.2);
+}
+
+.modal-content.modal-camera {
+    max-width: 1200px;
+    width: 95vw;
+    /* Usar 95vw para que no se salga en pantallas pequeñas, pero max 1200px */
+    aspect-ratio: 16/10;
+    height: auto;
+    background: #000 !important;
+    border: 3px solid var(--primary-yellow) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease, width 0.4s ease, aspect-ratio 0.4s ease;
+}
+
+.modal-content.modal-camera.vertical-mode {
+    aspect-ratio: auto !important;
+    width: auto !important;
+    min-width: 380px !important;
+    height: 92vh !important;
+    max-width: 95vw !important;
+}
+
+.modal-content.modal-camera.vertical-mode .camera-video {
+    height: 100% !important;
+    width: 100% !important;
+    object-fit: fill !important;
+}
+
+/* Forzar visión en modal activo */
+.modal-overlay.active .modal-content.modal-camera {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+}
+
+.camera-container {
+    width: 100% !important;
+    height: 100% !important;
+    position: relative;
+    background: #000;
+    overflow: hidden;
+}
+
+.camera-video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+#cameraSnapshot {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+}
+
+.camera-toolbar {
+    position: absolute;
+    bottom: 15px;
+    right: 15px;
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 8px;
+    border-radius: 30px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.cam-btn {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.cam-btn:hover {
+    background: var(--primary-yellow);
+    color: #000;
+    transform: scale(1.1);
+}
+
+/* Fullscreen Mode Override */
+.modal-content.modal-camera.fullscreen {
+    max-width: 100% !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    aspect-ratio: auto !important;
+    border-radius: 0 !important;
+    border: none !important;
+}
+
+#cameraDebugLog {
+    pointer-events: none;
+    text-shadow: 1px 1px 2px #000;
+}
+
+/* ROBUST FIXES */
+.carousel-page {
+    width: 100vw !important;
+    height: 100% !important;
+    flex-shrink: 0;
+    overflow: hidden !important;
+    position: relative !important;
+    display: flex !important;
+    flex-direction: column !important;
+    opacity: 1 !important;
+    pointer-events: all !important;
+    transform: none !important;
+}
+
+/* Stable Detail Views (Overlays OUTSIDE carousel) */
+.view-section:not(.carousel-page) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100%;
+    display: none;
+    background: transparent;
+    backdrop-filter: blur(4px);
+    /* Reduced blur to see background better */
+    z-index: 10;
+    padding: 2rem 2rem;
+    box-sizing: border-box;
+    flex-direction: column;
+}
+
+/* Hide indicators and carousel content when a detail view is active */
+body:has(.view-section:not(.carousel-page).active) .page-indicators,
+body:has(.view-section:not(.carousel-page).active) .view-carousel {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+}
+
+.view-section:not(.carousel-page).active {
+    display: flex !important;
+}
+
+.home-grid {
+    display: flex !important;
+    flex-flow: row nowrap !important;
+    justify-content: flex-start !important;
+    /* Start from the left */
+    gap: 15px !important;
+    width: 100% !important;
+    height: 100% !important;
+    flex: 1 !important;
+    align-items: stretch !important;
+    padding: 40px 40px 100px 40px !important;
+    /* Symmetrical safe margins */
+    box-sizing: border-box !important;
+}
+
+.room-card {
+    flex: 1 1 0 !important;
+    /* Allow growing to fill EVERY bit of space */
+    height: 100% !important;
+    min-width: 120px !important;
+    max-width: none !important;
+    /* Remove restriction to use all space */
+    padding: 20px 10px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    margin: 0 !important;
+    /* Remove margin-right to use gap instead */
+}
+
+.room-card .card-icon i {
+    font-size: 2.5rem !important;
+    /* Shrink icon slightly */
+}
+
+.room-card .card-name {
+    font-size: 0.8rem !important;
+    /* Shrink text slightly */
+}
+
+.page-indicators {
+    position: fixed !important;
+    bottom: 40px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    gap: 15px !important;
+    z-index: 10000 !important;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px 20px;
+    border-radius: 30px;
+}
+
+.dot {
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.dot.active {
+    background: #FFD700;
+    transform: scale(1.3);
+    box-shadow: 0 0 10px #FFD700;
+}
+
+//* ======================================
+MUSIC WIDGET STYLES (Dashboard Mini-Player) - Fully Responsive======================================*/ .widget-music-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: clamp(8px, 2cqh, 15px);
+    box-sizing: border-box;
+    position: relative;
+    gap: clamp(4px, 1.5cqh, 10px);
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.spotify-overlay-widget {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #1DB954;
+    font-weight: 600;
+    font-size: clamp(0.8rem, 2.5cqw, 1rem);
+    cursor: pointer;
+    z-index: 10;
+    border-radius: inherit;
+    transition: all 0.3s ease;
+}
+
+.spotify-overlay-widget:hover {
+    background: rgba(0, 0, 0, 0.98);
+    transform: scale(1.02);
+}
+
+.music-widget-art {
+    width: 100%;
+    flex: 1 1 auto;
+    max-height: 60%;
+    aspect-ratio: 1/1;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+.music-widget-art img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.music-widget-info {
+    width: 100%;
+    text-align: center;
+    flex: 0 1 auto;
+    min-height: 0;
+    padding: 0 8px;
+}
+
+.music-widget-title {
+    font-size: clamp(0.7rem, 2.2cqh, 1.1rem);
+    font-weight: 700;
+    color: white;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-widget-artist {
+    font-size: clamp(0.6rem, 1.8cqh, 0.9rem);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.music-widget-controls {
+    display: flex;
+    gap: clamp(5px, 2cqw, 12px);
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    flex: 0 0 auto;
+    padding-bottom: clamp(4px, 1cqh, 8px);
+}
+
+.music-ctrl-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: white;
+    width: clamp(28px, 6cqw, 42px);
+    height: clamp(28px, 6cqw, 42px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.music-ctrl-btn.play {
+    width: clamp(35px, 8cqw, 52px);
+    height: clamp(35px, 8cqw, 52px);
+    background: rgba(29, 185, 84, 0.8);
+    border-color: rgba(29, 185, 84, 1);
+}
+
+.music-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.music-ctrl-btn.play:hover {
+    background: rgba(29, 185, 84, 1);
+    transform: scale(1.1);
+}
+
+.music-ctrl-btn i {
+    font-size: clamp(0.7rem, 2cqw, 1.1rem);
+}
+
+.music-ctrl-btn.play i {
+    font-size: clamp(0.9rem, 2.5cqw, 1.4rem);
+}/* ======================================
+   DEVICE WIDGET STYLES (Dashboard) - Fully Responsive
+   ====================================== */
+
+.device-widget-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: clamp(10px, 2cqh, 20px);
+    gap: clamp(8px, 2cqh, 15px);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.device-widget-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+}
+
+.device-widget-card.device-on {
+    background: linear-gradient(135deg,
+            rgba(255, 215, 0, 0.15) 0%,
+            rgba(255, 215, 0, 0.05) 100%);
+    border-color: rgba(255, 215, 0, 0.4);
+}
+
+.device-widget-icon {
+    width: 100%;
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: 60%;
+}
+
+.device-widget-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    max-width: clamp(60px, 20cqw, 150px);
+    max-height: clamp(60px, 20cqh, 150px);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.device-widget-card:hover .device-widget-icon img {
+    transform: scale(1.05);
+}
+
+.device-widget-card.device-on .device-widget-icon img {
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.device-widget-name {
+    font-size: clamp(0.8rem, 2.5cqh, 1.3rem);
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 0 0 auto;
+}
+
+.device-widget-power {
+    width: clamp(35px, 8cqw, 50px);
+    height: clamp(35px, 8cqw, 50px);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    flex: 0 0 auto;
+}
+
+.device-widget-card.device-on .device-widget-power {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    border-color: #FFD700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+}
+
+.device-widget-power i {
+    font-size: clamp(0.9rem, 3cqw, 1.3rem);
+    color: white;
+}
+/* ======================================
+   AIR QUALITY STATUS PILLS - GLASSMORPHISM
+   ====================================== */
+
+.internal-status-bar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.status-pill {
+    position: relative;
+    padding: 8px 16px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.status-pill::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+/* Safe State - Green Shadow */
+.status-pill.safe-value {
+    border-color: rgba(34, 197, 94, 0.4);
+    box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3),
+        0 0 30px rgba(34, 197, 94, 0.15);
+}
+
+.status-pill.safe-value::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 12px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.3), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* Warning State - Yellow Shadow */
+.status-pill.warning-value {
+    border-color: rgba(234, 179, 8, 0.4);
+    box-shadow: 0 4px 20px rgba(234, 179, 8, 0.3),
+        0 0 30px rgba(234, 179, 8, 0.15);
+}
+
+.status-pill.warning-value::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 12px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.3), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* Danger State - Red Shadow */
+.status-pill.danger-value {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4),
+        0 0 30px rgba(239, 68, 68, 0.2);
+    animation: pulse-danger 2s ease-in-out infinite;
+}
+
+.status-pill.danger-value::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 12px;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.4), transparent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+@keyframes pulse-danger {
+
+    0%,
+    100% {
+        box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4),
+            0 0 30px rgba(239, 68, 68, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 4px 25px rgba(239, 68, 68, 0.6),
+            0 0 40px rgba(239, 68, 68, 0.35);
+    }
+}
+
+.status-pill:hover {
+    transform: translateY(-2px);
+    background: rgba(255, 255, 255, 0.12);
+}
+/* ======================================
+   AIR QUALITY ALERT MODAL
+   ====================================== */
+
+.air-alert-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.air-alert-content {
+    background: linear-gradient(135deg, rgba(30, 30, 30, 0.95), rgba(20, 20, 20, 0.98));
+    border: 2px solid rgba(239, 68, 68, 0.5);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(239, 68, 68, 0.4),
+        0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideDown 0.4s ease;
+}
+
+.air-alert-icon {
+    font-size: 4rem;
+    color: #EF4444;
+    margin-bottom: 20px;
+    animation: pulse-alert 1.5s ease-in-out infinite;
+}
+
+.air-alert-title {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: white;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 10px rgba(239, 68, 68, 0.5);
+}
+
+.air-alert-message {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+.air-alert-message strong {
+    color: #EF4444;
+    font-weight: 900;
+}
+
+.air-alert-btn {
+    background: linear-gradient(135deg, #EF4444, #DC2626);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.air-alert-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-50px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse-alert {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* --- Estilos para el Banner del Asistente --- */
+#assistant-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 10px; /* Grosor de la línea */
+    background-color: #ffeb3b; /* Amarillo base */
+    box-shadow: 0 0 15px 5px rgba(255, 235, 59, 0.7); /* Sombra resplandeciente */
+    z-index: 9999; /* Asegurar que esté sobre todo */
+    transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Estado Oculto */
+.assistant-banner-hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Estado Visible */
+.assistant-banner-visible {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* Línea de voz interna para la animación */
+.voice-line {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    background-size: 200% 100%;
+    opacity: 0; /* Oculta por defecto */
+}
+
+/* --- Animaciones --- */
+
+/* 1. Estado: Escuchando (Estático/Pulso suave) */
+.assistant-listening .voice-line {
+    opacity: 0.5;
+    animation: pulseMic 1.5s infinite;
+}
+
+@keyframes pulseMic {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+    100% { opacity: 0.3; }
+}
+
+/* 2. Estado: Respondiendo (Movimiento de onda) */
+.assistant-responding .voice-line {
+    opacity: 1;
+    animation: voiceWave 1s infinite linear;
+}
+
+@keyframes voiceWave {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
