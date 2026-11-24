@@ -12,17 +12,71 @@
       Synchronizes PC, Tablet & Mobile automatically!
    ========================================================= */
 window.ServerStateSync = {
-  lastUpdatedAt: null,
+  lastUpdatedAt: localStorage.getItem('wallpanel_v48_updated_at') || null,
   isSaving: false,
+  pendingSave: false,
+  lastSaveCompletedMs: 0,
+
+  parseTs(iso) {
+    if (!iso) return 0;
+    const t = Date.parse(iso);
+    return Number.isNaN(t) ? 0 : t;
+  },
+
+  ensureV48ProtagonistCards(widgetsArr) {
+    if (!Array.isArray(widgetsArr)) return widgetsArr;
+    if (localStorage.getItem('wallpanel_v48_cards_seeded') === 'true') return widgetsArr;
+
+    const hasLunar = widgetsArr.some(w => w.type === 'lunar_phase');
+    const hasSpotify = widgetsArr.some(w => w.type === 'spotify_player' || w.type === 'music');
+
+    if (!hasLunar || !hasSpotify) {
+      const additions = [];
+      if (!hasLunar) additions.push({ id: 'w-lunar-phase', type: 'lunar_phase', w: 2, h: 2 });
+      if (!hasSpotify) additions.push({ id: 'w-spotify', type: 'spotify_player', w: 2, h: 1 });
+      // Insert right after weather hero (or at index 0) so they appear on Screen 1 immediately!
+      const heroIdx = widgetsArr.findIndex(w => w.type === 'weather_hero' || w.type === 'weather');
+      if (heroIdx >= 0) {
+        widgetsArr[heroIdx].w = 2;
+        widgetsArr[heroIdx].h = 1;
+        widgetsArr.splice(heroIdx + 1, 0, ...additions);
+      } else {
+        widgetsArr.unshift(...additions);
+      }
+      localStorage.setItem('wallpanel_v48_cards_seeded', 'true');
+      return widgetsArr;
+    }
+    localStorage.setItem('wallpanel_v48_cards_seeded', 'true');
+    return widgetsArr;
+  },
 
   async loadFromServer() {
     try {
-      const res = await fetch('/api/state');
+      const res = await fetch('/api/state', { cache: 'no-store' });
       if (!res.ok) return null;
       const state = await res.json();
       if (state && Object.keys(state).length > 0) {
-        this.lastUpdatedAt = state.updatedAt;
+        const remoteTs = this.parseTs(state.updatedAt);
+        const localTs = this.parseTs(this.lastUpdatedAt);
+
+        // Never overwrite newer local edits with an older server snapshot!
+        if (localTs > 0 && remoteTs > 0 && localTs > remoteTs + 500) {
+          await this.saveToServer();
+          return null;
+        }
+
+        if (state.updatedAt) {
+          this.lastUpdatedAt = state.updatedAt;
+          localStorage.setItem('wallpanel_v48_updated_at', state.updatedAt);
+        }
+        const hadLunar = Array.isArray(state.centralWidgets) && state.centralWidgets.some(w => w.type === 'lunar_phase');
+        const hadSpotify = Array.isArray(state.centralWidgets) && state.centralWidgets.some(w => w.type === 'spotify_player' || w.type === 'music');
+
         this.applyStateToApp(state, false);
+
+        if (!state.v48Seeded && (!hadLunar || !hadSpotify)) {
+          await this.saveToServer();
+        }
         return state;
       }
     } catch (e) {
@@ -41,8 +95,10 @@ window.ServerStateSync = {
       SkinManager.setGridDensity(state.gridDensity, false, false);
     }
     if (Array.isArray(state.centralWidgets)) {
-      DashboardManager.widgets = state.centralWidgets;
-      localStorage.setItem('wallpanel_v47_central_widgets', JSON.stringify(state.centralWidgets));
+      if (state.v48Seeded) localStorage.setItem('wallpanel_v48_cards_seeded', 'true');
+      const enriched = this.ensureV48ProtagonistCards([...state.centralWidgets]);
+      DashboardManager.widgets = enriched;
+      localStorage.setItem('wallpanel_v47_central_widgets', JSON.stringify(enriched));
       needsRender = true;
     }
     if (Array.isArray(state.dockWidgets)) {
@@ -64,39 +120,68 @@ window.ServerStateSync = {
       SecuritySystem.config = { ...SecuritySystem.config, ...state.securityConfig };
       localStorage.setItem('wallpanel_v45_security_config', JSON.stringify(SecuritySystem.config));
     }
+    if (state.roomSettings && typeof roomSettings !== 'undefined') {
+      roomSettings = state.roomSettings;
+      localStorage.setItem('wallpanel_v3_room_config', JSON.stringify(roomSettings));
+      if (typeof renderHomeView === 'function') renderHomeView();
+    }
+    if (Array.isArray(state.manualDevices)) {
+      localStorage.setItem('manual_ip_devices', JSON.stringify(state.manualDevices));
+    }
 
     if (needsRender) {
       DashboardManager.render();
     }
     if (notify && typeof showNotification === 'function') {
-      showNotification('🔄 Diseño sincronizado desde wallpanel_state.json');
+      showNotification('🔄 Diseño sincronizado y guardado');
     }
   },
 
   async saveToServer() {
-    if (this.isSaving) return;
+    const nowIso = new Date().toISOString();
+    this.lastUpdatedAt = nowIso;
+    localStorage.setItem('wallpanel_v48_updated_at', nowIso);
+
+    if (this.isSaving) {
+      this.pendingSave = true;
+      return;
+    }
     this.isSaving = true;
     try {
-      const payload = {
-        skin: SkinManager.currentSkin,
-        gridDensity: SkinManager.currentDensity,
-        centralWidgets: DashboardManager.widgets,
-        dockWidgets: DashboardManager.dockWidgets,
-        smartRules: SmartRuleCards.rules,
-        flows: FlowAutomationEngine.flows,
-        securityConfig: SecuritySystem.config
-      };
-      const res = await fetch('/api/state', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.state && data.state.updatedAt) {
-          this.lastUpdatedAt = data.state.updatedAt;
+      do {
+        this.pendingSave = false;
+        const stamp = new Date().toISOString();
+        this.lastUpdatedAt = stamp;
+        localStorage.setItem('wallpanel_v48_updated_at', stamp);
+
+        const payload = {
+          v48Seeded: true,
+          updatedAt: stamp,
+          skin: SkinManager.currentSkin,
+          gridDensity: SkinManager.currentDensity,
+          centralWidgets: DashboardManager.widgets,
+          dockWidgets: DashboardManager.dockWidgets,
+          smartRules: SmartRuleCards.rules,
+          flows: FlowAutomationEngine.flows,
+          securityConfig: SecuritySystem.config,
+          roomSettings: typeof roomSettings !== 'undefined' ? roomSettings : undefined,
+          manualDevices: JSON.parse(localStorage.getItem('manual_ip_devices') || '[]'),
+          spotifyWebUrl: window.SpotifyCardManager ? window.SpotifyCardManager.embedUrl : undefined
+        };
+        const res = await fetch('/api/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.state && data.state.updatedAt) {
+            this.lastUpdatedAt = data.state.updatedAt;
+            localStorage.setItem('wallpanel_v48_updated_at', data.state.updatedAt);
+          }
+          this.lastSaveCompletedMs = Date.now();
         }
-      }
+      } while (this.pendingSave);
     } catch (e) {
       console.warn('[ServerStateSync] Error guardando en servidor:', e.message);
     } finally {
@@ -105,19 +190,27 @@ window.ServerStateSync = {
   },
 
   startLiveSyncPolling() {
-    // Poll every 5 seconds so if user edits layout on PC, the Tablet updates automatically!
     setInterval(async () => {
-      if (this.isSaving || DashboardManager.isEditMode) return;
+      // Never poll while saving, editing, or within 4 seconds after a local save!
+      if (this.isSaving || this.pendingSave || DashboardManager.isEditMode) return;
+      if (Date.now() - this.lastSaveCompletedMs < 4000) return;
       try {
-        const res = await fetch('/api/state');
+        const res = await fetch('/api/state', { cache: 'no-store' });
         if (!res.ok) return;
         const remote = await res.json();
-        if (remote && remote.updatedAt && remote.updatedAt !== this.lastUpdatedAt) {
+        if (!remote || !remote.updatedAt) return;
+
+        const remoteTs = this.parseTs(remote.updatedAt);
+        const localTs = this.parseTs(this.lastUpdatedAt);
+
+        // Strictly apply ONLY if remote state is genuinely newer than local state
+        if (remoteTs > localTs + 500) {
           this.lastUpdatedAt = remote.updatedAt;
+          localStorage.setItem('wallpanel_v48_updated_at', remote.updatedAt);
           this.applyStateToApp(remote, true);
         }
       } catch (e) {}
-    }, 5000);
+    }, 6000);
   }
 };
 
@@ -1392,22 +1485,300 @@ window.CameraVisionAI = {
 };
 
 /* =========================================================
-   7. 2D BENTO GRID (WIDTH 1x..4x AND HEIGHT 1x..3x)
+   7. REALISTIC LUNAR PHASE OBSERVATORY & SPOTIFY MANAGER
+   ========================================================= */
+window.LunarPhaseEngine = {
+  PHASES: [
+    {
+      id: 'new',
+      name: 'Luna Nueva',
+      fraction: '0/4 · Novilunio',
+      img: 'public/assets/luna/new.png',
+      agri: '🌱 Agricultura: Savia en raíces. Ideal para abonar suelo, deshierbar, tutorar y podas sanitarias.',
+      life: '✨ Vida: Introspección, descanso reparador, limpieza energética y planeación de metas nuevas.'
+    },
+    {
+      id: 'waxing_crescent',
+      name: 'Luna Creciente',
+      fraction: '1/4 de Creciente',
+      img: 'public/assets/luna/waxing_crescent.png',
+      agri: '🌱 Agricultura: Savia subiendo. Excelente para sembrar hortalizas de hoja, germinar semillas y trasplantar.',
+      life: '✨ Vida: Impulso vital en ascenso; ideal para comenzar hábitos, estudios, negocios y corte de cabello para crecer.'
+    },
+    {
+      id: 'first_quarter',
+      name: 'Cuarto Creciente',
+      fraction: '2/4 · Cuarto Creciente',
+      img: 'public/assets/luna/first_quarter.png',
+      agri: '🌱 Agricultura: Fuerte vigor foliar. Óptimo para plantas de fruto, flores, legumbres e injertos.',
+      life: '✨ Vida: Determinación, enfoque, toma de decisiones rápidas, ejercicio de fuerza y superación de obstáculos.'
+    },
+    {
+      id: 'waxing_gibbous',
+      name: 'Gibosa Creciente',
+      fraction: '3/4 de Creciente',
+      img: 'public/assets/luna/waxing_gibbous.png',
+      agri: '🌱 Agricultura: Savia concentrándose en tallos y botones florales. Riego nutritivo y absorción máxima.',
+      life: '✨ Vida: Perfeccionamiento de proyectos, alta productividad, vitalidad física y preparación para logros.'
+    },
+    {
+      id: 'full',
+      name: 'Luna Llena',
+      fraction: '4/4 · Plenilunio',
+      img: 'public/assets/luna/full.png',
+      agri: '🌱 Agricultura: Savia en la copa y frutos. Ideal para cosechar frutos jugosos y plantas aromáticas; evitar podar.',
+      life: '✨ Vida: Plenitud emocional, creatividad máxima, vida social, gratitud y celebración; cuidar el sueño.'
+    },
+    {
+      id: 'waning_gibbous',
+      name: 'Gibosa Menguante',
+      fraction: '3/4 de Menguante',
+      img: 'public/assets/luna/waning_gibbous.png',
+      agri: '🌱 Agricultura: Savia descendiendo. Excelente para sembrar tubérculos, bulbos, raíces (papa, zanahoria) y conservar.',
+      life: '✨ Vida: Asimilación de aprendizajes, compartir conocimiento, depuración física y organización del hogar.'
+    },
+    {
+      id: 'last_quarter',
+      name: 'Cuarto Menguante',
+      fraction: '2/4 · Cuarto Menguante',
+      img: 'public/assets/luna/last_quarter.png',
+      agri: '🌱 Agricultura: Fuerza en raíces. Óptimo para podas de formación, corte de maderas duraderas y control de plagas.',
+      life: '✨ Vida: Soltar cargas, cerrar ciclos, tratamientos detox y corte de cabello para fortalecer la raíz.'
+    },
+    {
+      id: 'waning_crescent',
+      name: 'Luna Menguante',
+      fraction: '1/4 de Menguante',
+      img: 'public/assets/luna/waning_crescent.png',
+      agri: '🌱 Agricultura: Reposo vegetativo. Ideal para compostaje, preparación de camas de cultivo y descanso de la tierra.',
+      life: '✨ Vida: Serenidad, meditación, recuperación muscular, balance financiero y descanso profundo.'
+    }
+  ],
+
+  getCurrentLunarDetails(date = new Date()) {
+    const synodicDays = 29.530588853;
+    const refNewMoonMs = Date.UTC(2026, 0, 18, 19, 52, 0); // Astronomical New Moon ref
+    const diffDays = (date.getTime() - refNewMoonMs) / 86400000;
+    const cycleDay = ((diffDays % synodicDays) + synodicDays) % synodicDays;
+    const ratio = cycleDay / synodicDays;
+
+    // Illumination percentage via cosine curve (0% at new, 50% at quarters, 100% at full)
+    const illum = Math.round(((1 - Math.cos(2 * Math.PI * ratio)) / 2) * 100);
+
+    let idx = 0;
+    if (ratio < 0.04 || ratio >= 0.96) idx = 0;
+    else if (ratio < 0.21) idx = 1;
+    else if (ratio < 0.29) idx = 2;
+    else if (ratio < 0.46) idx = 3;
+    else if (ratio < 0.54) idx = 4;
+    else if (ratio < 0.71) idx = 5;
+    else if (ratio < 0.79) idx = 6;
+    else idx = 7;
+
+    return {
+      ...this.PHASES[idx],
+      phaseIndex: idx,
+      illum,
+      cycleDay: cycleDay.toFixed(1)
+    };
+  },
+
+  openLunarGuideModal(selectedIdx = null) {
+    const modal = document.getElementById('lunarDetailModal');
+    const body = document.getElementById('lunarModalBody');
+    if (!modal || !body) return;
+
+    const current = this.getCurrentLunarDetails();
+    const activeIdx = selectedIdx !== null ? selectedIdx : current.phaseIndex;
+    const shown = this.PHASES[activeIdx] || current;
+    const isCurrent = activeIdx === current.phaseIndex;
+
+    const selectorHtml = this.PHASES.map((p, i) => `
+      <div onclick="LunarPhaseEngine.openLunarGuideModal(${i})" style="cursor:pointer; padding:8px; border-radius:12px; text-align:center; background:${i === activeIdx ? 'rgba(253,224,71,0.18)' : 'rgba(255,255,255,0.04)'}; border:1px solid ${i === activeIdx ? '#fde047' : 'rgba(255,255,255,0.12)'}; transition:all 0.2s;">
+        <img src="${p.img}" style="width:44px; height:44px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.7));">
+        <div style="font-size:0.68rem; font-weight:800; color:${i === activeIdx ? '#fef08a' : '#e2e8f0'}; margin-top:4px;">${p.name}</div>
+        <div style="font-size:0.58rem; color:#94a3b8;">${p.fraction}</div>
+      </div>
+    `).join('');
+
+    body.innerHTML = `
+      <div style="display:grid; grid-template-columns:minmax(220px, 290px) 1fr; gap:18px; align-items:center; background:rgba(4,9,24,0.75); border:1px solid rgba(186,230,253,0.22); border-radius:16px; padding:18px; position:relative; overflow:hidden;">
+        <div style="position:relative; height:220px; display:flex; align-items:center; justify-content:center;">
+          <div class="lunar-halo-ring" style="width:190px; height:190px;"></div>
+          <img src="public/assets/luna/clouds.png" class="lunar-cloud-layer lunar-cloud-back" style="width:240px;">
+          <img src="${shown.img}" class="lunar-moon-img" style="width:170px; height:170px;">
+          <img src="public/assets/luna/clouds.png" class="lunar-cloud-layer lunar-cloud-front" style="width:255px;">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px; z-index:4;">
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span class="lunar-fraction-pill">${shown.fraction}</span>
+            ${isCurrent ? `<span class="seismo-badge online">● FASE ACTUAL HOY · ${current.illum}% Iluminada (Día ${current.cycleDay}/29.5)</span>` : `<span class="seismo-badge">Vista previa de fase</span>`}
+          </div>
+          <h3 style="margin:0; font-size:1.65rem; font-weight:900; color:#fef9c3;">${shown.name}</h3>
+          <div style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); border-radius:12px; padding:10px 12px; font-size:0.84rem; color:#ecfdf5; line-height:1.45;">
+            ${shown.agri}
+          </div>
+          <div style="background:rgba(56,189,248,0.12); border:1px solid rgba(56,189,248,0.35); border-radius:12px; padding:10px 12px; font-size:0.84rem; color:#e0f2fe; line-height:1.45;">
+            ${shown.life}
+          </div>
+        </div>
+      </div>
+
+      <h4 style="margin:16px 0 8px 0; color:#93c5fd; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.8px;">
+        Explorar las 8 Fases del Ciclo Lunar
+      </h4>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(105px, 1fr)); gap:8px;">
+        ${selectorHtml}
+      </div>
+    `;
+    modal.classList.add('active');
+  }
+};
+
+window.SpotifyCardManager = {
+  embedUrl: localStorage.getItem('wallpanel_v48_spotify_embed') || 'https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator&theme=0',
+
+  PRESETS: [
+    { label: '🔥 Top Hits Hoy', url: 'https://open.spotify.com/embed/playlist/37i9dQZF1DXcBWIGoYBM5M?utm_source=generator&theme=0', title: 'Today\'s Top Hits', artist: 'Spotify Oficial', cover: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&q=80' },
+    { label: '🇨🇴 Éxitos Colombia', url: 'https://open.spotify.com/embed/playlist/37i9dQZF1DX0XUsuxWHRQd?utm_source=generator&theme=0', title: 'Éxitos Colombia', artist: 'Lo más escuchado', cover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=300&q=80' },
+    { label: '☕ Chill & Lounge Casa', url: 'https://open.spotify.com/embed/playlist/37i9dQZF1DX4WYpdgoIcn6?utm_source=generator&theme=0', title: 'Chill Hits Hogar', artist: 'Ambiente Sala', cover: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=300&q=80' },
+    { label: '🎸 Clásicos Rock & Pop', url: 'https://open.spotify.com/embed/playlist/37i9dQZF1DWXRqgorJj26U?utm_source=generator&theme=0', title: 'Rock Classics', artist: 'Spotify Mix', cover: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300&q=80' }
+  ],
+
+  getDisplayInfo() {
+    const item = typeof currentSpotifyData !== 'undefined' && currentSpotifyData?.item ? currentSpotifyData.item : null;
+    const hasToken = typeof spotifyAccessToken !== 'undefined' && !!spotifyAccessToken;
+    if (item) {
+      return {
+        title: item.name || 'Reproduciendo en Spotify',
+        artist: (item.artists || []).map(a => a.name).join(', ') || 'Spotify',
+        cover: item.album?.images?.[0]?.url || this.PRESETS[0].cover,
+        isPlaying: !!currentSpotifyData.is_playing,
+        connected: true
+      };
+    }
+    const matchedPreset = this.PRESETS.find(p => p.url === this.embedUrl) || this.PRESETS[0];
+    return {
+      title: hasToken ? 'Spotify Conectado (Dale Play)' : matchedPreset.title,
+      artist: hasToken ? 'Toca para abrir reproductor web' : `${matchedPreset.artist} · Toca para abrir`,
+      cover: matchedPreset.cover,
+      isPlaying: false,
+      connected: hasToken
+    };
+  },
+
+  syncAllCards() {
+    const info = this.getDisplayInfo();
+    document.querySelectorAll('.spotify-v48-card-root').forEach(root => {
+      const img = root.querySelector('.sp-live-cover');
+      const ttl = root.querySelector('.spotify-v48-title');
+      const art = root.querySelector('.spotify-v48-artist');
+      const btn = root.querySelector('.sp-play-icon');
+      const badge = root.querySelector('.sp-conn-pill');
+      const wrap = root.querySelector('.spotify-v48-art-wrap');
+
+      if (img && img.src !== info.cover) img.src = info.cover;
+      if (ttl) ttl.textContent = info.title;
+      if (art) art.textContent = info.artist;
+      if (btn) btn.className = `fas ${info.isPlaying ? 'fa-pause' : 'fa-play'} sp-play-icon`;
+      if (wrap) wrap.classList.toggle('playing', info.isPlaying);
+      if (badge) {
+        badge.className = `seismo-badge sp-conn-pill ${info.connected ? 'online' : ''}`;
+        badge.textContent = info.connected ? (info.isPlaying ? '● SONANDO' : '● CONECTADO') : '● WEB PLAYER';
+      }
+    });
+  },
+
+  setEmbedSource(rawInput) {
+    let url = String(rawInput || '').trim();
+    if (!url) return;
+    // Convert regular https://open.spotify.com/playlist/XYZ or track/XYZ or album/XYZ into embed URL automatically!
+    const m = url.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|playlist|album|artist|episode|show)\/([a-zA-Z0-9]+)/);
+    if (m) {
+      url = `https://open.spotify.com/embed/${m[1]}/${m[2]}?utm_source=generator&theme=0`;
+    }
+    this.embedUrl = url;
+    localStorage.setItem('wallpanel_v48_spotify_embed', url);
+    const ifr = document.getElementById('spotifyWebModalIframe');
+    if (ifr) ifr.src = url;
+    this.syncAllCards();
+    ServerStateSync.saveToServer();
+  },
+
+  openSpotifyWebModal() {
+    const modal = document.getElementById('spotifyWebModal');
+    const body = document.getElementById('spotifyModalBody');
+    const badge = document.getElementById('spotifyModalAuthBadge');
+    if (!modal || !body) return;
+
+    const hasToken = typeof spotifyAccessToken !== 'undefined' && !!spotifyAccessToken;
+    const redirectUri = typeof getSpotifyRedirectUri === 'function' ? getSpotifyRedirectUri() : (window.location.origin + '/');
+    const item = typeof currentSpotifyData !== 'undefined' && currentSpotifyData?.item ? currentSpotifyData.item : null;
+    if (item && item.id) {
+      this.embedUrl = `https://open.spotify.com/embed/track/${item.id}?utm_source=generator&theme=0`;
+    }
+
+    if (badge) {
+      badge.className = `seismo-badge ${hasToken ? 'online' : ''}`;
+      badge.textContent = hasToken ? '● Cuenta Spotify Vinculada' : '● Modo Web Directo';
+    }
+
+    const presetsHtml = this.PRESETS.map(p => `
+      <button class="size-chip" style="padding:6px 10px;" onclick="SpotifyCardManager.setEmbedSource('${p.url}')">${p.label}</button>
+    `).join('');
+
+    body.innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.04); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+          <span style="font-size:0.72rem; font-weight:800; color:#86efac;">Listas Rápidas:</span>
+          ${presetsHtml}
+        </div>
+        <div style="display:flex; gap:6px; flex:1; min-width:240px; max-width:440px;">
+          <input id="spotifyCustomUrlInput" type="text" placeholder="Pega enlace de Playlist, Canción o Álbum de Spotify..." style="flex:1; padding:6px 10px; border-radius:8px; border:1px solid #334155; background:#050a0e; color:#fff; font-size:0.74rem;">
+          <button class="size-chip" style="background:#1db954; color:#04130a; padding:6px 12px;" onclick="SpotifyCardManager.setEmbedSource(document.getElementById('spotifyCustomUrlInput').value)">Cargar</button>
+        </div>
+      </div>
+
+      <div style="flex:1; min-height:320px; border-radius:14px; overflow:hidden; border:1px solid rgba(29,185,84,0.35); background:#000;">
+        <iframe id="spotifyWebModalIframe" src="${this.embedUrl}" width="100%" height="100%" frameBorder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="border:none; display:block;"></iframe>
+      </div>
+
+      <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px; background:rgba(29,185,84,0.08); border:1px solid rgba(29,185,84,0.28); padding:8px 12px; border-radius:10px; font-size:0.72rem; color:#cbd5e1;">
+        <div>
+          <strong style="color:#86efac;">🔗 Redirect URI exacta para tu Spotify Developer App:</strong>
+          <code style="background:#050a0e; color:#fde047; padding:3px 7px; border-radius:6px; margin-left:6px; user-select:all;">${redirectUri}</code>
+          <span style="color:#94a3b8; margin-left:6px;">(Agrégala en developer.spotify.com ➔ Redirect URIs para sincronizar carátula en vivo)</span>
+        </div>
+        <button class="size-chip" onclick="navigator.clipboard.writeText('${redirectUri}'); showNotification('📋 Redirect URI copiada al portapapeles');">📋 Copiar URI</button>
+      </div>
+    `;
+    modal.classList.add('active');
+  },
+
+  closeSpotifyWebModal() {
+    document.getElementById('spotifyWebModal')?.classList.remove('active');
+  }
+};
+
+/* =========================================================
+   7.5 2D BENTO GRID (WIDTH 1x..4x AND HEIGHT 1x..3x)
       + TOUCH SWIPE PAGINATION + ELEVATED WIDE BOTTOM BANNER
    ========================================================= */
 const V47_CENTRAL_KEY = 'wallpanel_v47_central_widgets';
 const V47_DOCK_KEY = 'wallpanel_v47_dock_widgets';
 
 const DEFAULT_CENTRAL_WIDGETS = [
-  { id: 'w-weather-hero', type: 'weather_hero', w: 2, h: 2 },
-  { id: 'w-lighting', type: 'mihogar_lighting', w: 2, h: 1 },
-  { id: 'w-climate', type: 'mihogar_climate', w: 1, h: 1 },
+  { id: 'w-weather-hero', type: 'weather_hero', w: 2, h: 1 },
+  { id: 'w-lunar-phase', type: 'lunar_phase', w: 2, h: 2 },
+  { id: 'w-spotify', type: 'spotify_player', w: 2, h: 1 },
+  { id: 'w-seismo', type: 'seismograph', deviceId: 'esp32-sismografo-principal', w: 2, h: 1 },
+  { id: 'w-lighting', type: 'mihogar_lighting', w: 1, h: 1 },
   { id: 'w-security', type: 'mihogar_security', w: 1, h: 1 },
+  { id: 'w-climate', type: 'mihogar_climate', w: 1, h: 1 },
   { id: 'w-room-sala', type: 'mihogar_room_photo', room: 'Salon', title: 'Sala', bg: 'backgrounds/Sala Comedor.png', icon: 'fa-couch', w: 1, h: 1 },
   { id: 'w-room-hab', type: 'mihogar_room_photo', room: 'Habitación', title: 'Habitación', bg: 'backgrounds/Habitación.png', icon: 'fa-bed', w: 1, h: 1 },
   { id: 'w-room-cocina', type: 'mihogar_room_photo', room: 'Cocina', title: 'Cocina', bg: 'backgrounds/Cocina.png', icon: 'fa-utensils', w: 1, h: 1 },
   { id: 'w-room-oficina', type: 'mihogar_room_photo', room: 'Oficina', title: 'Estudio', bg: 'backgrounds/Oficina.png', icon: 'fa-laptop', w: 1, h: 1 },
-  { id: 'w-seismo', type: 'seismograph', deviceId: 'esp32-sismografo-principal', w: 2, h: 1 },
   { id: 'w-camera-live', type: 'tuya_camera_card', w: 1, h: 1 },
   { id: 'w-rule-1', type: 'smart_rule_card', ruleId: 'rule-card-1', w: 1, h: 1 }
 ];
@@ -1598,14 +1969,25 @@ Object.assign(window.DashboardManager, {
 
     const prevBtn = document.getElementById('centralPrevBtn');
     const nextBtn = document.getElementById('centralNextBtn');
+    const pageInd = document.getElementById('centralPageIndicator');
     const hasMultiple = pages.length > 1;
     if (prevBtn) prevBtn.style.display = hasMultiple ? 'flex' : 'none';
     if (nextBtn) nextBtn.style.display = hasMultiple ? 'flex' : 'none';
+    if (pageInd) {
+      if (hasMultiple) {
+        pageInd.style.display = 'flex';
+        pageInd.innerHTML = `<span style="margin-right:3px;">Pág ${this.internalPage + 1}/${pages.length}</span>` +
+          pages.map((_, i) => `<span class="central-page-dot ${i === this.internalPage ? 'active' : ''}" onclick="DashboardManager.internalPage=${i}; DashboardManager.render();"></span>`).join('');
+      } else {
+        pageInd.style.display = 'none';
+      }
+    }
 
     this.dockWidgets.forEach(w => this.createCardDOM(w, dock, true));
 
     SecuritySystem.updateSecurityUI();
     WeatherSVG.syncAllClimateCards();
+    if (window.SpotifyCardManager) window.SpotifyCardManager.syncAllCards();
   },
 
   createCardDOM(rawWidget, container, isDock = false) {
@@ -1827,20 +2209,89 @@ Object.assign(window.DashboardManager, {
         </div>
       `);
     }
-    // 8. SEISMOGRAPH ESP32 CARD
+    // 8. SEISMOGRAPH ESP32 CARD (FIXED CONTAINER & REALISTIC TRACE — NO STRETCH)
     else if (widget.type === 'seismograph') {
+      card.setAttribute('data-type', 'seismograph');
       card.insertAdjacentHTML('beforeend', `
         <div class="seismo-widget-inner" onclick="if(!DashboardManager.isEditMode) openSeismographVercelModal()">
           <div class="seismo-widget-header" style="font-size:0.74rem;">
-            <span style="display:flex; align-items:center; gap:6px; color:#00e5ff;">
+            <span style="display:flex; align-items:center; gap:6px; color:#00e5ff; font-weight:800;">
               <i class="fas fa-wave-square"></i> SISMÓGRAFO ESP32 · APTO 902
             </span>
             <span class="seismo-badge online seismo-live-badge" style="font-size:0.6rem;">● Cloud MQTT 24/7</span>
           </div>
-          <canvas class="seismo-canvas-mini" style="min-height:42px;"></canvas>
+          <div class="seismo-canvas-wrap">
+            <canvas class="seismo-canvas-mini"></canvas>
+          </div>
           <div class="seismo-widget-footer" style="font-size:0.68rem;">
-            <span>Vibración: <strong class="seismo-live-pga" style="color:var(--text-main); font-family:'JetBrains Mono',monospace;">${ESP32Manager.seismoState.mag.toFixed(3)}g</strong></span>
-            <span style="color:var(--primary-yellow); font-weight:700;">Monitor Vercel ↗</span>
+            <span>PGA: <strong class="seismo-live-pga" style="color:var(--text-main); font-family:'JetBrains Mono',monospace;">${ESP32Manager.seismoState.mag.toFixed(3)}g</strong></span>
+            <span style="color:var(--primary-yellow); font-weight:800;">Abrir Monitor Web ↗</span>
+          </div>
+        </div>
+      `);
+    }
+    // 8.5 REALISTIC ANIMATED LUNAR PHASE CARD WITH INTERMEDIATE CLOUDS & AGRICULTURE/LIFE TRAITS
+    else if (widget.type === 'lunar_phase') {
+      const lunar = LunarPhaseEngine.getCurrentLunarDetails();
+      card.classList.add('widget-lunar-card');
+      card.insertAdjacentHTML('beforeend', `
+        <div class="lunar-card-stage" onclick="if(!DashboardManager.isEditMode) LunarPhaseEngine.openLunarGuideModal()">
+          <div class="lunar-stars-bg"></div>
+          <div class="lunar-top-bar">
+            <div>
+              <div class="lunar-phase-headline">${lunar.name}</div>
+              <div class="lunar-sub-illum">🌕 ${lunar.illum}% iluminada · Día ${lunar.cycleDay}</div>
+            </div>
+            <span class="lunar-fraction-pill">${lunar.fraction}</span>
+          </div>
+
+          <div class="lunar-sky-theater">
+            <div class="lunar-halo-ring"></div>
+            <img src="public/assets/luna/clouds.png" alt="" class="lunar-cloud-layer lunar-cloud-back">
+            <img src="${lunar.img}" alt="${lunar.name}" class="lunar-moon-img">
+            <img src="public/assets/luna/clouds.png" alt="" class="lunar-cloud-layer lunar-cloud-front">
+          </div>
+
+          <div class="lunar-bottom-panel">
+            <div class="lunar-trait-line">${lunar.agri}</div>
+            <div class="lunar-trait-line secondary-trait" style="color:#bae6fd;">${lunar.life}</div>
+          </div>
+        </div>
+      `);
+    }
+    // 8.6 SPOTIFY PLAYER & WEB MODAL CARD
+    else if (widget.type === 'spotify_player' || widget.type === 'music') {
+      const sp = SpotifyCardManager.getDisplayInfo();
+      card.classList.add('widget-spotify-v48', 'spotify-v48-card-root');
+      card.insertAdjacentHTML('beforeend', `
+        <div class="spotify-v48-inner" onclick="if(!DashboardManager.isEditMode) SpotifyCardManager.openSpotifyWebModal()">
+          <div class="spotify-v48-art-wrap ${sp.isPlaying ? 'playing' : ''}">
+            <img src="${sp.cover}" alt="Spotify Cover" class="sp-live-cover">
+            <div class="spotify-v48-badge"><i class="fab fa-spotify"></i></div>
+          </div>
+          <div class="spotify-v48-body">
+            <div class="spotify-v48-toprow">
+              <span style="font-size:0.68rem; font-weight:900; color:#1db954; letter-spacing:0.6px;"><i class="fab fa-spotify"></i> SPOTIFY</span>
+              <span class="seismo-badge sp-conn-pill ${sp.connected ? 'online' : ''}" style="font-size:0.58rem;">${sp.connected ? '● CONECTADO' : '● WEB PLAYER'}</span>
+            </div>
+            <div style="min-width:0;">
+              <div class="spotify-v48-title">${sp.title}</div>
+              <div class="spotify-v48-artist">${sp.artist}</div>
+            </div>
+            <div class="spotify-v48-controls">
+              <button class="sp-btn-circle" onclick="controlMusic('previous', event)" title="Anterior">
+                <i class="fas fa-backward-step"></i>
+              </button>
+              <button class="sp-btn-circle play-main" onclick="controlMusic('playpause', event)" title="Reproducir / Pausar">
+                <i class="fas ${sp.isPlaying ? 'fa-pause' : 'fa-play'} sp-play-icon"></i>
+              </button>
+              <button class="sp-btn-circle" onclick="controlMusic('next', event)" title="Siguiente">
+                <i class="fas fa-forward-step"></i>
+              </button>
+              <button class="sp-web-chip" onclick="event.stopPropagation(); SpotifyCardManager.openSpotifyWebModal()" title="Abrir Spotify Web en Modal">
+                Web ↗
+              </button>
+            </div>
           </div>
         </div>
       `);
@@ -1920,7 +2371,15 @@ window.openWidgetSelector = function () {
     <div class="gallery-category">
       <h4 style="margin:5px 0 8px 0; color:var(--primary-yellow); font-size:0.8rem;">WIDGETS PROTAGONISTAS & REGLAS</h4>
       <div class="widget-gallery" style="grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));">
-        <div class="gallery-item" onclick="DashboardManager.addWidget('weather_hero', null, parseInt(document.getElementById('widgetInitW').value)||2, parseInt(document.getElementById('widgetInitH').value)||2, document.getElementById('widgetTargetZoneSelect').value==='dock')">
+        <div class="gallery-item" style="border:1px solid rgba(253,224,71,0.55); background:rgba(23,37,84,0.55);" onclick="DashboardManager.addWidget('lunar_phase', null, parseInt(document.getElementById('widgetInitW').value)||2, parseInt(document.getElementById('widgetInitH').value)||2, document.getElementById('widgetTargetZoneSelect').value==='dock')">
+          <i class="fas fa-moon" style="color:#fde047;"></i>
+          <span>Fases Lunares Realista</span>
+        </div>
+        <div class="gallery-item" style="border:1px solid rgba(29,185,84,0.55); background:rgba(7,25,16,0.55);" onclick="DashboardManager.addWidget('spotify_player', null, parseInt(document.getElementById('widgetInitW').value)||2, parseInt(document.getElementById('widgetInitH').value)||1, document.getElementById('widgetTargetZoneSelect').value==='dock')">
+          <i class="fab fa-spotify" style="color:#1db954;"></i>
+          <span>Spotify Player & Web</span>
+        </div>
+        <div class="gallery-item" onclick="DashboardManager.addWidget('weather_hero', null, parseInt(document.getElementById('widgetInitW').value)||2, parseInt(document.getElementById('widgetInitH').value)||1, document.getElementById('widgetTargetZoneSelect').value==='dock')">
           <i class="fas fa-cloud-sun-rain" style="color:#fde047;"></i>
           <span>Clima & Fase Lunar Hero</span>
         </div>
@@ -2062,11 +2521,13 @@ window.ESP32Manager = {
     this.lastRealPacketTime = 0;
     this.simTimer = setInterval(() => {
       if (Date.now() - this.lastRealPacketTime > 3500) {
-        this.simPhase += 0.28;
-        const w = Math.sin(this.simPhase) * 0.0018 + (Math.random() - 0.5) * 0.0011;
-        this.pushWavePoint(w, Math.abs(w), this.seismoState.threshold, 0);
+        this.simPhase += 0.65;
+        // Realistic micro-tremor baseline jitter (~0.0005g..0.0018g) with occasional crisp micro-spike
+        const spike = Math.random() > 0.92 ? (Math.random() - 0.5) * 0.0055 : 0;
+        const w = (Math.random() - 0.5) * 0.0014 + Math.sin(this.simPhase * 2.1) * 0.0004 + spike;
+        this.pushWavePoint(w, Math.abs(w) + 0.0006, this.seismoState.threshold, 0);
       }
-    }, 120);
+    }, 95);
   },
 
   pushWavePoint(waveVal, mag, thr, alarm) {
@@ -2082,6 +2543,11 @@ window.ESP32Manager = {
       pill.classList.remove('safe-value', 'warning-value', 'danger-value');
       pill.classList.add(alarm === 1 || mag >= thr ? 'danger-value' : 'safe-value');
     }
+    const modalReadout = document.getElementById('modalSeismoLiveReadout');
+    if (modalReadout) {
+      modalReadout.textContent = `${mag.toFixed(3)}g · MQTT 24/7`;
+      modalReadout.className = `seismo-badge ${alarm === 1 || mag >= thr ? 'alert' : 'online'}`;
+    }
     document.querySelectorAll('.seismo-live-pga').forEach(el => { el.textContent = `${mag.toFixed(3)}g`; });
 
     if ((alarm === 1 || mag >= thr) && Date.now() - this.seismoState.lastAlertTime > 12000) {
@@ -2095,33 +2561,63 @@ window.ESP32Manager = {
     const draw = () => {
       const canvases = document.querySelectorAll('.seismo-canvas-mini');
       const buf = this.seismoState.waveBuffer;
-      const thr = this.seismoState.threshold;
+      const thr = this.seismoState.threshold || 0.025;
       const isAlert = this.seismoState.alarm === 1 || this.seismoState.mag >= thr;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       canvases.forEach(cvs => {
-        const rect = cvs.getBoundingClientRect();
-        if (rect.width === 0 || rect.height === 0) return;
-        if (cvs.width !== Math.floor(rect.width) || cvs.height !== Math.floor(rect.height)) {
-          cvs.width = Math.floor(rect.width);
-          cvs.height = Math.floor(rect.height);
+        const parent = cvs.parentElement;
+        if (!parent) return;
+        const rect = parent.getBoundingClientRect();
+        if (rect.width < 10 || rect.height < 10) return;
+
+        const targetW = Math.floor(rect.width * dpr);
+        const targetH = Math.floor(rect.height * dpr);
+        if (cvs.width !== targetW || cvs.height !== targetH) {
+          cvs.width = targetW;
+          cvs.height = targetH;
         }
+
         const ctx = cvs.getContext('2d');
-        const w = cvs.width, h = cvs.height, cy = h / 2;
+        const w = cvs.width;
+        const h = cvs.height;
+        const cy = h / 2;
         ctx.clearRect(0, 0, w, h);
-        let maxAmp = 0.004;
-        for (let i = 0; i < buf.length; i++) if (Math.abs(buf[i]) > maxAmp) maxAmp = Math.abs(buf[i]);
-        const scale = Math.min(1200, (h * 0.38) / maxAmp);
+
+        // Center reference axis line
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(0, 229, 255, 0.18)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.moveTo(0, cy);
+        ctx.lineTo(w, cy);
+        ctx.stroke();
+
+        // Calibrated physical scale (0.030g = full half-height) so calm 0.001g stays crisp & flat!
+        let peak = 0.030;
+        for (let i = 0; i < buf.length; i++) {
+          if (Math.abs(buf[i]) > peak) peak = Math.abs(buf[i]);
+        }
+        const scale = (h * 0.42) / peak;
 
         ctx.beginPath();
         const step = w / (buf.length - 1);
         for (let i = 0; i < buf.length; i++) {
           const px = i * step;
-          const py = Math.max(3, Math.min(h - 3, cy - buf[i] * scale));
-          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          const py = Math.max(2 * dpr, Math.min(h - 2 * dpr, cy - buf[i] * scale));
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
         }
         ctx.strokeStyle = isAlert ? '#ff3b30' : '#00e5ff';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1.6 * dpr;
+        ctx.lineJoin = 'round';
         ctx.stroke();
+
+        // Glowing live stylus dot on the right edge
+        const lastY = Math.max(2 * dpr, Math.min(h - 2 * dpr, cy - buf[buf.length - 1] * scale));
+        ctx.beginPath();
+        ctx.fillStyle = isAlert ? '#ff3b30' : '#38bdf8';
+        ctx.arc(w - 3 * dpr, lastY, 2.6 * dpr, 0, Math.PI * 2);
+        ctx.fill();
       });
       requestAnimationFrame(draw);
     };
@@ -2610,8 +3106,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateWeather();
   setInterval(() => WeatherSVG.syncAllClimateCards(), 1500);
 
-  // Load shared persistent state from wallpanel_state.json so PC & Tablet match!
+  // Load shared persistent state from wallpanel_state.json / Vercel Blob so PC, Tablet & Vercel match!
   await ServerStateSync.loadFromServer();
   ServerStateSync.startLiveSyncPolling();
   DashboardManager.render();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('autoSpotifyAuth') === '1') {
+    window.history.replaceState({}, document.title, '/');
+    authorizeSpotify();
+  }
 });

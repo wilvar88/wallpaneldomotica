@@ -11,9 +11,9 @@
     <link rel="manifest" href="manifest.json">
     <title>Mi Hogar · Wall Panel Familia Varela Páez V4.7</title>
 
-    <!-- Estilos CSS Base + Skins V4.7 -->
-    <link rel="stylesheet" href="style.css?v=47.0">
-    <link rel="stylesheet" href="skins_v4.css?v=47.0">
+    <!-- Estilos CSS Base + Skins V4.8 -->
+    <link rel="stylesheet" href="style.css?v=48.0">
+    <link rel="stylesheet" href="skins_v4.css?v=48.0">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -168,6 +168,7 @@
                             <button class="central-carousel-nav-btn next" id="centralNextBtn" onclick="DashboardManager.changeInternalPage(1)" title="Siguiente página de tarjetas">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
+                            <div id="centralPageIndicator" class="central-page-indicator" style="display:none;"></div>
                         </div>
 
                         <!-- FIXED BOTTOM DOCK: Pinned Essential Cards (Iluminación, Clima Hogar, Armar Seguridad, Reglas, etc. - Customizable!) -->
@@ -614,25 +615,67 @@
         </div>
     </div>
 
-    <!-- MODAL: SEISMOGRAPH VERCEL FULL DASHBOARD -->
+    <!-- MODAL: SEISMOGRAPH VERCEL FULL BROWSER DASHBOARD -->
     <div class="modal-overlay" id="seismographVercelModal">
-        <div class="modal-content" style="width:96vw; max-width:1400px; height:90vh; background:#0c0917; border:2px solid #bb86fc;">
-            <div class="modal-header" style="background:#160b29; padding:12px 20px;">
-                <h2 style="color:#fff; font-size:1.05rem; display:flex; align-items:center; gap:10px; margin:0;">
+        <div class="modal-content" style="width:96vw; max-width:1440px; height:91vh; background:#0c0917; border:2px solid #38bdf8; display:flex; flex-direction:column;">
+            <div class="modal-header" style="background:#0f172a; padding:10px 16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:8px;">
                     <i class="fas fa-wave-square" style="color:#00e5ff;"></i>
-                    Sismógrafo ESP32 — Apartamento Natura Torre 7 Apto 902
-                    <span id="modalSeismoLiveReadout" class="seismo-badge online" style="margin-left:10px;">0.000g · Cloud MQTT Activo</span>
-                </h2>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <a href="https://sismografo-wilson-v-s-projects.vercel.app/" target="_blank" style="color:#bb86fc; font-size:0.78rem; text-decoration:none; border:1px solid #bb86fc; padding:4px 10px; border-radius:8px;">
-                        <i class="fas fa-external-link-alt"></i> Abrir en Pestaña
+                    <strong style="color:#fff; font-size:0.95rem;">Monitor Sísmico Web</strong>
+                    <span id="modalSeismoLiveReadout" class="seismo-badge online">0.000g · MQTT 24/7</span>
+                </div>
+                <div style="display:flex; flex:1; max-width:560px; gap:6px; align-items:center;">
+                    <button class="size-chip" onclick="document.getElementById('seismographVercelIframe').src='https://sismografo-wilson-v-s-projects.vercel.app/'" title="Inicio Sismógrafo"><i class="fas fa-home"></i></button>
+                    <button class="size-chip" onclick="const ifr=document.getElementById('seismographVercelIframe'); ifr.src=ifr.src;" title="Recargar página"><i class="fas fa-rotate-right"></i></button>
+                    <input id="seismoBrowserUrlInput" type="text" value="https://sismografo-wilson-v-s-projects.vercel.app/" onkeydown="if(event.key==='Enter') document.getElementById('seismographVercelIframe').src=this.value" style="flex:1; padding:5px 10px; border-radius:8px; border:1px solid #334155; background:#090d16; color:#38bdf8; font-size:0.74rem; font-family:'JetBrains Mono',monospace;">
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <a href="https://sismografo-wilson-v-s-projects.vercel.app/" target="_blank" style="color:#38bdf8; font-size:0.75rem; text-decoration:none; border:1px solid #38bdf8; padding:4px 10px; border-radius:8px;">
+                        <i class="fas fa-external-link-alt"></i> Pestaña Nueva
                     </a>
                     <button class="close-btn" onclick="closeSeismographVercelModal()"><i class="fas fa-times"></i></button>
                 </div>
             </div>
-            <div class="modal-body" style="padding:0; flex:1; overflow:hidden; position:relative;">
-                <iframe id="seismographVercelIframe" src="https://sismografo-wilson-v-s-projects.vercel.app/" style="width:100%; height:100%; border:none;"></iframe>
+            <div class="modal-body" style="padding:0; flex:1; overflow:hidden; position:relative; background:#050811;">
+                <iframe id="seismographVercelIframe" src="https://sismografo-wilson-v-s-projects.vercel.app/" allow="fullscreen; autoplay; clipboard-read; clipboard-write" style="width:100%; height:100%; border:none; display:block;"></iframe>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SPOTIFY WEB PLAYER & REAL-TIME SYNC -->
+    <div class="modal-overlay" id="spotifyWebModal">
+        <div class="modal-content" style="width:95vw; max-width:1180px; height:89vh; background:#090f15; border:2px solid #1db954; display:flex; flex-direction:column;">
+            <div class="modal-header" style="background:#071910; padding:12px 18px; border-bottom:1px solid rgba(29,185,84,0.3);">
+                <h2 style="color:#fff; font-size:1.02rem; display:flex; align-items:center; gap:10px; margin:0;">
+                    <i class="fab fa-spotify" style="color:#1db954; font-size:1.3rem;"></i>
+                    Spotify Web & Control Remoto Mi Hogar
+                    <span id="spotifyModalAuthBadge" class="seismo-badge">Reproductor Web Activo</span>
+                </h2>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="size-chip" style="background:#1db954; color:#04130a; padding:5px 10px;" onclick="authorizeSpotify()">
+                        <i class="fas fa-link"></i> Vincular Control API
+                    </button>
+                    <a href="https://open.spotify.com" target="_blank" style="color:#86efac; font-size:0.75rem; text-decoration:none; border:1px solid #1db954; padding:4px 10px; border-radius:8px;">
+                        <i class="fas fa-external-link-alt"></i> Abrir Spotify Web
+                    </a>
+                    <button class="close-btn" onclick="SpotifyCardManager.closeSpotifyWebModal()"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div id="spotifyModalBody" class="modal-body" style="padding:12px; flex:1; display:flex; flex-direction:column; gap:10px; overflow:hidden;"></div>
+        </div>
+    </div>
+
+    <!-- MODAL: LUNAR PHASES INTERACTIVE GUIDE -->
+    <div class="modal-overlay" id="lunarDetailModal">
+        <div class="modal-content" style="width:94vw; max-width:960px; max-height:88vh; background:radial-gradient(circle at top, #172554, #060a17); border:1.5px solid rgba(253,224,71,0.45); display:flex; flex-direction:column;">
+            <div class="modal-header" style="background:rgba(9,15,34,0.85); padding:12px 18px;">
+                <h2 style="color:#fef9c3; font-size:1.05rem; display:flex; align-items:center; gap:10px; margin:0;">
+                    <i class="fas fa-moon" style="color:#fde047;"></i>
+                    Observatorio de Fases Lunares · Guía para la Vida y Agricultura
+                </h2>
+                <button class="close-btn" onclick="document.getElementById('lunarDetailModal').classList.remove('active')"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="lunarModalBody" class="modal-body" style="padding:16px; overflow-y:auto;"></div>
         </div>
     </div>
 
@@ -704,8 +747,8 @@
     </div>
 
     <!-- Scripts -->
-    <script src="script.js?v=47.0"></script>
-    <script src="modules_v4.js?v=47.0"></script>
+    <script src="script.js?v=48.0"></script>
+    <script src="modules_v4.js?v=48.0"></script>
 </body>
 
 </html>

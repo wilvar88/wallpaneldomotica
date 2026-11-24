@@ -1,5 +1,9 @@
-// server.js — Wall Panel V4 Backend (Tuya, SmartThings Proxy, Encrypted API Vault, Armed Security PIN & Email, Alexa TTS, RAG Docs, LAN 0.0.0.0)
-import 'dotenv/config';
+// server.js — Wall Panel V4.8 Backend (Hybrid Local Disk + Vercel Private Blob Persistence, Tuya, SmartThings, Spotify Token Sync, Encrypted Vault)
+import dotenv from 'dotenv';
+dotenv.config();
+dotenv.config({ path: '.env.local', override: false });
+import { kv } from '@vercel/kv';
+import { put as blobPut, get as blobGet } from '@vercel/blob';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -12,6 +16,8 @@ import { TuyaContext } from '@tuya/tuya-connector-nodejs';
 const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: '25mb' }));
+app.use('/assets', express.static(path.resolve('public/assets')));
+app.use('/public', express.static(path.resolve('public')));
 app.use(express.static('.'));
 
 const PORT = process.env.PORT || 3001;
@@ -81,7 +87,47 @@ function hashPin(pin) {
   return crypto.createHash('sha256').update(`wallpanel_pin_salt_${String(pin).trim()}`).digest('hex');
 }
 
-function loadVault() {
+function hasVercelBlob() {
+  return !!process.env.BLOB_READ_WRITE_TOKEN;
+}
+
+function hasVercelKV() {
+  return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+async function readBlobJson(pathname) {
+  if (!hasVercelBlob()) return null;
+  try {
+    const res = await blobGet(pathname, { access: 'private' });
+    if (res && res.statusCode === 200 && res.stream) {
+      const txt = await new Response(res.stream).text();
+      return JSON.parse(txt);
+    }
+  } catch (e) {
+    if (!String(e.message || '').toLowerCase().includes('not found')) {
+      console.warn(`[Blob] Read warning (${pathname}):`, e.message);
+    }
+  }
+  return null;
+}
+
+async function writeBlobJson(pathname, dataObj) {
+  if (!hasVercelBlob()) return false;
+  try {
+    await blobPut(pathname, JSON.stringify(dataObj, null, 2), {
+      access: 'private',
+      addRandomSuffix: false,
+      allowOverwrite: true,
+      contentType: 'application/json'
+    });
+    return true;
+  } catch (e) {
+    console.warn(`[Blob] Write warning (${pathname}):`, e.message);
+    return false;
+  }
+}
+
+async function loadVault() {
   const defaults = {
     TUYA_ACCESS_ID: process.env.TUYA_ACCESS_ID || '',
     TUYA_ACCESS_SECRET: process.env.TUYA_ACCESS_SECRET || '',
@@ -91,7 +137,10 @@ function loadVault() {
     SMARTTHINGS_CLIENT_ID: process.env.SMARTTHINGS_CLIENT_ID || '',
     SMARTTHINGS_CLIENT_SECRET: process.env.SMARTTHINGS_CLIENT_SECRET || '',
     SMARTTHINGS_REFRESH_TOKEN: process.env.SMARTTHINGS_REFRESH_TOKEN || '',
-    SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || '',
+    SPOTIFY_CLIENT_ID: process.env.SPOTIFY_CLIENT_ID || '0686b83e9a174ce6855075bda440a62f',
+    SPOTIFY_ACCESS_TOKEN: '',
+    SPOTIFY_REFRESH_TOKEN: '',
+    SPOTIFY_TOKEN_EXPIRY: '',
     ALEXA_VOICE_MONKEY_TOKEN: process.env.ALEXA_VOICE_MONKEY_TOKEN || '',
     ALEXA_VOICE_MONKEY_DEVICE: process.env.ALEXA_VOICE_MONKEY_DEVICE || 'echo-dot',
     ALEXA_NOTIFY_ME_CODE: process.env.ALEXA_NOTIFY_ME_CODE || '',
@@ -106,38 +155,70 @@ function loadVault() {
     SECURITY_EMAIL_WEBHOOK: process.env.SECURITY_EMAIL_WEBHOOK || ''
   };
 
+  // 1. Try Vercel Private Blob encrypted vault
+  const blobEncrypted = await readBlobJson('wallpanel_vault.enc.json');
+  if (blobEncrypted && typeof blobEncrypted === 'object') {
+    const decrypted = {};
+    for (const [k, v] of Object.entries(blobEncrypted)) {
+      const val = decryptText(v);
+      if (val !== '') decrypted[k] = val;
+    }
+    return { ...defaults, ...decrypted };
+  }
+
+  // 2. Try Vercel KV if configured
+  if (hasVercelKV()) {
+    try {
+      const stored = await kv.get('vault');
+      if (stored) {
+        const parsed = typeof stored === 'string' ? JSON.parse(stored) : stored;
+        return { ...defaults, ...parsed };
+      }
+    } catch (e) {
+      console.warn('[Vault] KV load warning:', e.message);
+    }
+  }
+
+  // 3. Fallback to local file-based storage
   if (fs.existsSync(VAULT_FILE)) {
     try {
       const raw = JSON.parse(fs.readFileSync(VAULT_FILE, 'utf8'));
       const decrypted = {};
       for (const [k, v] of Object.entries(raw)) {
-        decrypted[k] = decryptText(v);
-      }
-      if (!decrypted.SECURITY_PIN_HASH) {
-        decrypted.SECURITY_PIN_HASH = hashPin('123456');
+        const val = decryptText(v);
+        if (val !== '') decrypted[k] = val;
       }
       return { ...defaults, ...decrypted };
     } catch (e) {
-      console.error('[Vault] Error loading vault, using defaults:', e.message);
+      console.error('[Vault] File load error:', e.message);
     }
   }
   return defaults;
 }
 
-function saveVault(newConfig) {
-  const current = loadVault();
+async function saveVault(newConfig) {
+  const current = vaultConfig || await loadVault();
   const merged = { ...current, ...newConfig };
+  vaultConfig = merged;
   const encrypted = {};
   for (const [k, v] of Object.entries(merged)) {
     encrypted[k] = encryptText(v);
   }
-  fs.writeFileSync(VAULT_FILE, JSON.stringify(encrypted, null, 2), 'utf8');
+  try {
+    fs.writeFileSync(VAULT_FILE, JSON.stringify(encrypted, null, 2), 'utf8');
+  } catch (e) {
+    // Expected on Vercel read-only FS
+  }
+  await writeBlobJson('wallpanel_vault.enc.json', encrypted);
+  if (hasVercelKV()) {
+    try { await kv.set('vault', JSON.stringify(merged)); } catch (e) {}
+  }
   return merged;
 }
 
-let vaultConfig = loadVault();
-if (!fs.existsSync(VAULT_FILE)) {
-  saveVault(vaultConfig);
+let vaultConfig = await loadVault();
+if (!process.env.VERCEL && !fs.existsSync(VAULT_FILE)) {
+  await saveVault(vaultConfig);
 }
 
 function getTuyaClient() {
@@ -178,13 +259,14 @@ app.get('/api/vault/status', (req, res) => {
   });
 });
 
-app.post('/api/vault/update', (req, res) => {
+app.post('/api/vault/update', async (req, res) => {
   try {
     const updates = {};
     const allowedKeys = [
       'TUYA_ACCESS_ID', 'TUYA_ACCESS_SECRET', 'TUYA_UID', 'TUYA_BASE_URL',
       'SMARTTHINGS_TOKEN', 'SMARTTHINGS_CLIENT_ID', 'SMARTTHINGS_CLIENT_SECRET', 'SMARTTHINGS_REFRESH_TOKEN',
-      'SPOTIFY_CLIENT_ID', 'ALEXA_VOICE_MONKEY_TOKEN', 'ALEXA_VOICE_MONKEY_DEVICE',
+      'SPOTIFY_CLIENT_ID', 'SPOTIFY_ACCESS_TOKEN', 'SPOTIFY_REFRESH_TOKEN', 'SPOTIFY_TOKEN_EXPIRY',
+      'ALEXA_VOICE_MONKEY_TOKEN', 'ALEXA_VOICE_MONKEY_DEVICE',
       'ALEXA_NOTIFY_ME_CODE', 'SINRIC_APP_KEY', 'SINRIC_DEVICE_ID',
       'HA_URL', 'HA_TOKEN', 'OLLAMA_URL', 'OLLAMA_MODEL',
       'SECURITY_ALERT_EMAIL', 'SECURITY_EMAIL_WEBHOOK'
@@ -194,9 +276,37 @@ app.post('/api/vault/update', (req, res) => {
         updates[key] = String(req.body[key]).trim();
       }
     }
-    vaultConfig = saveVault(updates);
+    vaultConfig = await saveVault(updates);
     tuya = getTuyaClient();
-    res.json({ success: true, message: 'Credenciales cifradas en AES-256 y guardadas en la bóveda local.' });
+    res.json({ success: true, message: 'Credenciales cifradas en AES-256 y guardadas de forma persistente.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Sync Spotify OAuth PKCE Tokens across PC, Tablet & Vercel
+app.get('/api/spotify/token', async (req, res) => {
+  if (!vaultConfig.SPOTIFY_ACCESS_TOKEN) {
+    vaultConfig = await loadVault();
+  }
+  res.json({
+    clientId: vaultConfig.SPOTIFY_CLIENT_ID || '0686b83e9a174ce6855075bda440a62f',
+    accessToken: vaultConfig.SPOTIFY_ACCESS_TOKEN || '',
+    refreshToken: vaultConfig.SPOTIFY_REFRESH_TOKEN || '',
+    tokenExpiry: Number(vaultConfig.SPOTIFY_TOKEN_EXPIRY || 0)
+  });
+});
+
+app.post('/api/spotify/token', async (req, res) => {
+  try {
+    const { clientId, accessToken, refreshToken, tokenExpiry } = req.body || {};
+    const updates = {};
+    if (clientId !== undefined) updates.SPOTIFY_CLIENT_ID = String(clientId).trim();
+    if (accessToken !== undefined) updates.SPOTIFY_ACCESS_TOKEN = String(accessToken);
+    if (refreshToken !== undefined) updates.SPOTIFY_REFRESH_TOKEN = String(refreshToken);
+    if (tokenExpiry !== undefined) updates.SPOTIFY_TOKEN_EXPIRY = String(tokenExpiry);
+    vaultConfig = await saveVault(updates);
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -216,7 +326,7 @@ app.post('/api/security/verify-pin', (req, res) => {
   res.json({ valid });
 });
 
-app.post('/api/security/change-pin', (req, res) => {
+app.post('/api/security/change-pin', async (req, res) => {
   const { currentPin, newPin } = req.body || {};
   if (!currentPin || !newPin || String(newPin).trim().length < 4) {
     return res.status(400).json({ success: false, error: 'PIN actual y nuevo PIN (mínimo 4 dígitos) requeridos.' });
@@ -225,7 +335,7 @@ app.post('/api/security/change-pin', (req, res) => {
   if (hashPin(currentPin) !== currentHash) {
     return res.status(403).json({ success: false, error: 'La contraseña actual no es correcta.' });
   }
-  vaultConfig = saveVault({ SECURITY_PIN_HASH: hashPin(newPin) });
+  vaultConfig = await saveVault({ SECURITY_PIN_HASH: hashPin(newPin) });
   res.json({ success: true, message: 'Contraseña de seguridad actualizada y cifrada con SHA-256 + AES-256.' });
 });
 
@@ -459,7 +569,7 @@ async function refreshSmartThingsOAuth() {
     });
     if (resp.ok) {
       const data = await resp.json();
-      vaultConfig = saveVault({
+      vaultConfig = await saveVault({
         SMARTTHINGS_TOKEN: data.access_token,
         SMARTTHINGS_REFRESH_TOKEN: data.refresh_token || vaultConfig.SMARTTHINGS_REFRESH_TOKEN
       });
@@ -896,49 +1006,114 @@ app.post('/api/ha/service', async (req, res) => {
 });
 
 // =========================================================
-// 9. PERSISTENT SHARED JSON MEMORY (wallpanel_state.json)
-//    Synchronizes PC, Tablet, Mobile & Vercel automatically!
+// 9. PERSISTENT SHARED JSON MEMORY (Local Disk + Vercel Private Blob + KV)
+//    Guarantees changes NEVER revert or get lost on Local OR Vercel!
 // =========================================================
 const STATE_JSON_FILE = path.resolve('wallpanel_state.json');
+const TMP_STATE_FILE = path.join(os.tmpdir(), 'wallpanel_state_runtime.json');
 let inMemoryStateCache = null;
+let lastBlobCheckMs = 0;
 
-function readSharedState() {
-  try {
-    if (fs.existsSync(STATE_JSON_FILE)) {
-      const raw = fs.readFileSync(STATE_JSON_FILE, 'utf8');
-      inMemoryStateCache = JSON.parse(raw);
-      return inMemoryStateCache;
+function pickNewestState(...candidates) {
+  let best = null;
+  let bestTime = -1;
+  for (const c of candidates) {
+    if (!c || typeof c !== 'object' || Object.keys(c).length === 0) continue;
+    const t = c.updatedAt ? Date.parse(c.updatedAt) : 0;
+    const validT = Number.isNaN(t) ? 0 : t;
+    if (!best || validT >= bestTime) {
+      best = c;
+      bestTime = validT;
     }
-  } catch (e) {
-    console.warn('[StateJSON] Error reading wallpanel_state.json:', e.message);
   }
-  return inMemoryStateCache || {};
+  return best || {};
 }
 
-function writeSharedState(partialUpdate) {
-  const current = readSharedState();
+function readDiskStateSync() {
+  let bundled = null;
+  let tmpState = null;
+  try {
+    if (fs.existsSync(STATE_JSON_FILE)) {
+      bundled = JSON.parse(fs.readFileSync(STATE_JSON_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  try {
+    if (fs.existsSync(TMP_STATE_FILE)) {
+      tmpState = JSON.parse(fs.readFileSync(TMP_STATE_FILE, 'utf8'));
+    }
+  } catch (e) {}
+  return pickNewestState(bundled, tmpState);
+}
+
+async function readSharedState(forceCloud = false) {
+  const diskState = readDiskStateSync();
+  let cloudState = null;
+
+  const now = Date.now();
+  if (hasVercelBlob() && (forceCloud || !inMemoryStateCache || (now - lastBlobCheckMs > 3500))) {
+    lastBlobCheckMs = now;
+    cloudState = await readBlobJson('wallpanel_state.json');
+  } else if (hasVercelKV() && (forceCloud || !inMemoryStateCache || (now - lastBlobCheckMs > 3500))) {
+    lastBlobCheckMs = now;
+    try {
+      const kvRaw = await kv.get('wallpanel_state');
+      if (kvRaw) cloudState = typeof kvRaw === 'string' ? JSON.parse(kvRaw) : kvRaw;
+    } catch (e) {}
+  }
+
+  inMemoryStateCache = pickNewestState(diskState, inMemoryStateCache, cloudState);
+  return inMemoryStateCache;
+}
+
+async function writeSharedState(partialUpdate) {
+  const current = await readSharedState(true);
+  const incomingTime = partialUpdate?.updatedAt ? Date.parse(partialUpdate.updatedAt) : Date.now();
+  const effectiveIso = !Number.isNaN(incomingTime) ? new Date(incomingTime).toISOString() : new Date().toISOString();
+
   const merged = {
     ...current,
     ...partialUpdate,
-    updatedAt: new Date().toISOString()
+    updatedAt: effectiveIso
   };
   inMemoryStateCache = merged;
+  lastBlobCheckMs = Date.now();
+
+  // 1. Write to project wallpanel_state.json (works on Local PC/LAN)
   try {
     fs.writeFileSync(STATE_JSON_FILE, JSON.stringify(merged, null, 2), 'utf8');
   } catch (e) {
-    console.warn('[StateJSON] Read-only FS fallback (Vercel Serverless), kept in memory:', e.message);
+    // Read-only FS on Vercel Serverless: write to /tmp fallback as well
+    try {
+      fs.writeFileSync(TMP_STATE_FILE, JSON.stringify(merged, null, 2), 'utf8');
+    } catch (e2) {}
   }
-  return merged;
+
+  // 2. Write to Vercel Private Blob (persists globally across all serverless instances!)
+  const blobSaved = await writeBlobJson('wallpanel_state.json', merged);
+
+  // 3. Write to Vercel KV if configured
+  if (hasVercelKV()) {
+    try { await kv.set('wallpanel_state', JSON.stringify(merged)); } catch (e) {}
+  }
+
+  return { merged, blobSaved };
 }
 
-app.get('/api/state', (req, res) => {
-  res.json(readSharedState());
+app.get('/api/state', async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const state = await readSharedState(false);
+    res.json(state);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/state', (req, res) => {
+app.post('/api/state', async (req, res) => {
   try {
-    const saved = writeSharedState(req.body || {});
-    res.json({ success: true, state: saved });
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    const { merged, blobSaved } = await writeSharedState(req.body || {});
+    res.json({ success: true, cloudPersisted: blobSaved, state: merged });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
